@@ -1,0 +1,21 @@
+{
+  "model_type": "Random Forest",
+  "features": [
+    "Age",
+    "Education",
+    "Income",
+    "Total_Dependents",
+    "Is_Parent",
+    "Kidhome",
+    "Teenhome",
+    "Marital_Divorced",
+    "Marital_Married",
+    "Marital_Single",
+    "Marital_Together",
+    "Marital_Widow"
+  ],
+  "needs_scaling": false,
+  "n_clusters": 4,
+  "test_accuracy": 1.0,
+  "feature_count": 12
+}
