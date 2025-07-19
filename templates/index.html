@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Customer Demographic Segmentation</title>
+    <title>Customer Demographic & Lifecycle Segmentation</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
         * {
@@ -356,13 +356,14 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1><i class="fas fa-users"></i> Customer Demographic Segmentation</h1>
-            <p>AI-powered customer segmentation using advanced machine learning</p>
+            <h1><i class="fas fa-users"></i> Customer Demographic & Lifecycle Segmentation</h1>
+            <p>AI-powered customer segmentation and lifecycle prediction using advanced machine learning</p>
         </div>
         
         <div class="form-container">
             <form method="POST" action="/predict_form" id="predictionForm">
                 <div class="form-grid">
+                    <!-- Demographic Features -->
                     <div class="form-group">
                         <label for="age">
                             <i class="fas fa-birthday-cake"></i>
@@ -441,7 +442,7 @@
                             Kids at Home
                         </label>
                         <input type="number" id="kidhome" name="kidhome" min="0" max="5"
-                               value="{{ input_data.kidhome if input_data else '0' }}">
+                               value '{{ input_data.kidhome if input_data else "0" }}'>
                         <div class="help-text">
                             <i class="fas fa-info-circle"></i>
                             Number of small children at home
@@ -478,10 +479,76 @@
                             Current relationship status
                         </div>
                     </div>
+
+                    <!-- Lifecycle Features -->
+                    <div class="form-group">
+                        <label for="recency">
+                            <i class="fas fa-clock"></i>
+                            Recency
+                        </label>
+                        <input type="number" id="recency" name="recency" min="0" step="1"
+                               value="{{ input_data.recency if input_data else '30' }}" required>
+                        <div class="help-text">
+                            <i class="fas fa-info-circle"></i>
+                            Days since last customer activity
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="tenure_days">
+                            <i class="fas fa-calendar-alt"></i>
+                            Tenure (Days)
+                        </label>
+                        <input type="number" id="tenure_days" name="tenure_days" min="0" step="1"
+                               value="{{ input_data.tenure_days if input_data else '365' }}" required>
+                        <div class="help-text">
+                            <i class="fas fa-info-circle"></i>
+                            Days as a customer
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="engagement_ratio">
+                            <i class="fas fa-chart-line"></i>
+                            Engagement Ratio
+                        </label>
+                        <input type="number" id="engagement_ratio" name="engagement_ratio" min="0" step="0.01"
+                               value="{{ input_data.engagement_ratio if input_data else '1.0' }}" required>
+                        <div class="help-text">
+                            <i class="fas fa-info-circle"></i>
+                            Measure of customer engagement
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="activity_index">
+                            <i class="fas fa-bolt"></i>
+                            Activity Index
+                        </label>
+                        <input type="number" id="activity_index" name="activity_index" min="0" step="0.01"
+                               value="{{ input_data.activity_index if input_data else '1.0' }}" required>
+                        <div class="help-text">
+                            <i class="fas fa-info-circle"></i>
+                            Measure of customer activity
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="total_spending">
+                            <i class="fas fa-wallet"></i>
+                            Total Spending
+                        </label>
+                        <input type="number" id="total_spending" name="total_spending" min="0" step="0.01"
+                               value="{{ input_data.total_spending if input_data else '1000.0' }}" required>
+                        <div class="help-text">
+                            <i class="fas fa-info-circle"></i>
+                            Total amount spent by customer (USD)
+                        </div>
+                    </div>
                 </div>
                 
                 <button type="submit" class="submit-btn">
-                    <i class="fas fa-magic"></i> Predict Customer Segment
+                    <i class="fas fa-magic"></i> Predict Customer Segment & Lifecycle
                 </button>
                 
                 <div class="loading" id="loading">
@@ -492,9 +559,10 @@
             
             {% if result %}
             <div class="result">
-                <h3><i class="fas fa-chart-pie"></i> Prediction Result</h3>
+                <h3><i class="fas fa-chart-pie"></i> Prediction Results</h3>
+                <!-- Demographic Cluster Result -->
                 <div class="cluster-info">
-                    <h4><i class="fas fa-tag"></i> {{ result.cluster_label }}</h4>
+                    <h4><i class="fas fa-tag"></i> Demographic Cluster: {{ result.cluster_label }}</h4>
                     <p><strong>Cluster ID:</strong> {{ result.cluster }}</p>
                     <p class="confidence">
                         <i class="fas fa-percentage"></i>
@@ -502,11 +570,30 @@
                     </p>
                 </div>
                 
-                <h4><i class="fas fa-chart-bar"></i> All Cluster Probabilities:</h4>
+                <h4><i class="fas fa-chart-bar"></i> Cluster Probabilities:</h4>
                 <ul class="probability-list">
                     {% for cluster, prob in result.all_probabilities.items() %}
                     <li>
                         <span><strong>{{ cluster }}</strong></span>
+                        <span class="confidence">{{ (prob * 100)|round(1) }}%</span>
+                    </li>
+                    {% endfor %}
+                </ul>
+                
+                <!-- Lifecycle Stage Result -->
+                <div class="cluster-info">
+                    <h4><i class="fas fa-circle-notch"></i> Lifecycle Stage: {{ result.lifecycle_stage }}</h4>
+                    <p class="confidence">
+                        <i class="fas fa-percentage"></i>
+                        <strong>Confidence:</strong> {{ (result.lifecycle_confidence * 100)|round(1) }}%
+                    </p>
+                </div>
+                
+                <h4><i class="fas fa-chart-bar"></i> Lifecycle Stage Probabilities:</h4>
+                <ul class="probability-list">
+                    {% for stage, prob in result.lifecycle_probabilities.items() %}
+                    <li>
+                        <span><strong>{{ stage }}</strong></span>
                         <span class="confidence">{{ (prob * 100)|round(1) }}%</span>
                     </li>
                     {% endfor %}
@@ -528,6 +615,15 @@
                     <li><strong>👨‍👩‍👧‍👦 Middle-aged Small Families:</strong> Adults in their 30s-50s with 1-2 children</li>
                     <li><strong>👴👵 Senior Singles/Couples:</strong> Older customers (55+) without dependents, higher disposable income</li>
                     <li><strong>👨‍👩‍👧‍👦 Middle-aged Large Families:</strong> Adults with multiple dependents, family-focused lifestyle</li>
+                </ul>
+                <h4><i class="fas fa-info-circle"></i> Lifecycle Stage Descriptions</h4>
+                <ul class="cluster-descriptions">
+                    <li><strong>Churned:</strong> Customers inactive for over 90 days</li>
+                    <li><strong>At-Risk:</strong> Customers inactive for 60-90 days</li>
+                    <li><strong>Super-Engaged:</strong> Highly active customers with top engagement and activity</li>
+                    <li><strong>Loyal-High-Value:</strong> Long-term customers with high engagement</li>
+                    <li><strong>Loyal-Regular:</strong> Long-term customers with moderate engagement</li>
+                    <li><strong>New:</strong> Recently acquired customers</li>
                 </ul>
             </div>
         </div>
