@@ -32,7 +32,6 @@ preprocessor = ColumnTransformer(transformers=[
         ('scaler', StandardScaler())
     ]), ['Income']),
 
-    # Age = 2025 - Year_Birth
     ('age', Pipeline([
         ('imputer', SimpleImputer(strategy='median')),
         ('age_calc', FunctionTransformer(compute_age, validate=False)),
@@ -101,12 +100,12 @@ if __name__ == "__main__":
 
     # Example usage: Predict from dictionary
     example_dict = {
-        'Year_Birth': [1980],
+        'Year_Birth': [1990],
         'Kidhome': [1],
         'Teenhome': [0],
         'Marital_Status': ['Married'],
-        'Education': ['PhD'],
-        'Income': [60000]
+        'Education': [0],
+        'Income': [30000]
     }
     prediction = predict_from_dict(example_dict)
     print(example_dict)
