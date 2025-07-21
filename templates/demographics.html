@@ -450,6 +450,7 @@
                         </div>
                     </div>
                     
+
                     <div class="form-group">
                         <label for="education">
                             <i class="fas fa-graduation-cap"></i>
@@ -457,15 +458,15 @@
                         </label>
                         <select id="education" name="education" required>
                             <option value="">Select Education Level</option>
-                            <option value="1" {{ 'selected' if input_data and input_data.education == '1' else '' }}>Basic Education</option>
-                            <option value="2" {{ 'selected' if input_data and input_data.education == '2' else '' }}>Undergraduate</option>
-                            <option value="3" {{ 'selected' if input_data and input_data.education == '3' else '' }}>Graduate</option>
-                            <option value="4" {{ 'selected' if input_data and input_data.education == '4' else '' }}>Postgraduate</option>
-                            <option value="5" {{ 'selected' if input_data and input_data.education == '5' else '' }}>PhD</option>
+                            <option value="Basic" {{ 'selected' if input_data and input_data.education == 'Basic' else '' }}>Basic</option>
+                            <option value="2n Cycle" {{ 'selected' if input_data and input_data.education == '2n Cycle' else '' }}>2n Cycle</option>
+                            <option value="Graduation" {{ 'selected' if input_data and input_data.education == 'Graduation' else '' }}>Graduation</option>
+                            <option value="Master" {{ 'selected' if input_data and input_data.education == 'Master' else '' }}>Master</option>
+                            <option value="PhD" {{ 'selected' if input_data and input_data.education == 'PhD' else '' }}>PhD</option>
                         </select>
                         <div class="help-text">
                             <i class="fas fa-info-circle"></i>
-                            Highest education level completed (1-5 scale)
+                            Highest education level completed
                         </div>
                     </div>
                     
