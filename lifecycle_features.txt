@@ -1,5 +1,0 @@
-Recency
-Tenure_Days
-Engagement_Ratio
-Activity_Index
-Total_Spending

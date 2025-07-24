@@ -1,0 +1,1432 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Customer Lifecycle Analysis</title>
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+      rel="stylesheet"
+    />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        background: #f8fafc;
+        min-height: 100vh;
+        padding: 20px;
+      }
+
+      .container {
+        max-width: 900px;
+        margin: 0 auto;
+        background: white;
+        border-radius: 20px;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+        overflow: hidden;
+        animation: fadeInUp 0.8s ease-out;
+        border: 1px solid #e2e8f0;
+      }
+
+      @keyframes fadeInUp {
+        from {
+          opacity: 0;
+          transform: translateY(30px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      .header {
+        background: linear-gradient(135deg, #1e40af 0%, #0f766e 100%);
+        color: white;
+        padding: 40px 30px;
+        text-align: center;
+        position: relative;
+      }
+
+      .header::before {
+        content: "";
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 20px;
+        background: white;
+        border-radius: 50% 50% 0 0 / 100% 100% 0 0;
+      }
+
+      .header h1 {
+        font-size: 2.5rem;
+        margin-bottom: 10px;
+        font-weight: 700;
+        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+      }
+
+      .header p {
+        font-size: 1.1rem;
+        opacity: 0.9;
+        margin-bottom: 0;
+      }
+
+      .back-link {
+        position: absolute;
+        top: 20px;
+        left: 20px;
+        color: rgba(255, 255, 255, 0.9);
+        text-decoration: none;
+        font-size: 1rem;
+        transition: all 0.3s ease;
+      }
+
+      .back-link:hover {
+        color: white;
+        transform: translateX(-3px);
+      }
+
+      .form-container {
+        background: white;
+        padding: 40px 30px;
+      }
+
+      .form-group {
+        position: relative;
+        margin-bottom: 25px;
+        background: white;
+      }
+
+      .form-group label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: 600;
+        color: #1e293b;
+        font-size: 0.95rem;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .form-group i {
+        color: #1e40af;
+        width: 16px;
+      }
+
+      input {
+        width: 100%;
+        padding: 15px 20px;
+        border: 2px solid #e2e8f0;
+        border-radius: 12px;
+        font-size: 16px;
+        transition: all 0.3s ease;
+        background: white;
+        color: #1e293b;
+      }
+
+      input:focus {
+        outline: none;
+        border-color: #1e40af;
+        box-shadow: 0 0 0 3px rgba(30, 64, 175, 0.1);
+        transform: translateY(-2px);
+      }
+
+      input:hover {
+        border-color: #1e40af;
+      }
+
+      .help-text {
+        font-size: 0.85rem;
+        color: #64748b;
+        margin-top: 5px;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+      }
+
+      .help-text i {
+        color: #94a3b8;
+        font-size: 0.8rem;
+      }
+
+      .submit-btn {
+        background: linear-gradient(135deg, #1e40af 0%, #0f766e 100%);
+        color: white;
+        padding: 18px 40px;
+        border: none;
+        border-radius: 50px;
+        cursor: pointer;
+        font-size: 18px;
+        font-weight: 600;
+        width: 100%;
+        margin-top: 20px;
+        transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .submit-btn:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 10px 25px rgba(30, 64, 175, 0.3);
+        background: linear-gradient(135deg, #1d4ed8 0%, #047857 100%);
+      }
+
+      .submit-btn:active {
+        transform: translateY(-1px);
+      }
+
+      .submit-btn:disabled {
+        background: #94a3b8;
+        cursor: not-allowed;
+        transform: none;
+        box-shadow: none;
+      }
+
+      .submit-btn::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(
+          90deg,
+          transparent,
+          rgba(255, 255, 255, 0.2),
+          transparent
+        );
+        transition: left 0.5s;
+      }
+
+      .submit-btn:hover::before {
+        left: 100%;
+      }
+
+      .result {
+        margin-top: 30px;
+        padding: 30px;
+        background: #f8fafc;
+        border-radius: 15px;
+        border: 1px solid #e2e8f0;
+        animation: slideIn 0.5s ease-out;
+      }
+
+      @keyframes slideIn {
+        from {
+          opacity: 0;
+          transform: translateX(-20px);
+        }
+        to {
+          opacity: 1;
+          transform: translateX(0);
+        }
+      }
+
+      .result h3 {
+        color: #1e293b;
+        margin-bottom: 20px;
+        font-size: 1.5rem;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .result-table {
+        width: 100%;
+        border-collapse: collapse;
+        background: white;
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+      }
+
+      .result-table th,
+      .result-table td {
+        padding: 15px;
+        text-align: left;
+        border-bottom: 1px solid #e2e8f0;
+      }
+
+      .result-table th {
+        background: #1e40af;
+        color: white;
+        font-weight: 600;
+      }
+
+      .result-table tr:last-child td {
+        border-bottom: none;
+      }
+
+      .result-table tr:hover {
+        background: #f8fafc;
+        transform: translateX(5px);
+        transition: all 0.3s ease;
+      }
+
+      .error {
+        margin-top: 30px;
+        padding: 25px;
+        background: #fef2f2;
+        border-radius: 15px;
+        color: #991b1b;
+        border: 1px solid #fecaca;
+        animation: shake 0.5s ease-out;
+      }
+
+      @keyframes shake {
+        0%,
+        20%,
+        40%,
+        60%,
+        80%,
+        100% {
+          transform: translateX(0);
+        }
+        10%,
+        30%,
+        50%,
+        70%,
+        90% {
+          transform: translateX(-5px);
+        }
+      }
+
+      .loading {
+        display: none;
+        text-align: center;
+        margin: 20px 0;
+        background: white;
+      }
+
+      .spinner {
+        border: 4px solid #f3f4f6;
+        border-top: 4px solid #1e40af;
+        border-radius: 50%;
+        width: 40px;
+        height: 40px;
+        animation: spin 1s linear infinite;
+        margin: 0 auto;
+      }
+
+      @keyframes spin {
+        0% {
+          transform: rotate(0deg);
+        }
+        100% {
+          transform: rotate(360deg);
+        }
+      }
+
+      .charts-container {
+        margin-top: 30px;
+        padding: 30px;
+        background: #f8fafc;
+        border-radius: 15px;
+        border: 1px solid #e2e8f0;
+        animation: slideIn 0.5s ease-out;
+      }
+
+      .charts-container h3 {
+        color: #1e293b;
+        margin-bottom: 20px;
+        font-size: 1.5rem;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .chart-row {
+        display: flex;
+        justify-content: space-between;
+        gap: 20px;
+        flex-wrap: wrap;
+      }
+
+      .chart {
+        flex: 1;
+        min-width: 300px;
+        max-width: 400px;
+      }
+
+      .description-container {
+        margin-top: 30px;
+        padding: 30px;
+        background: #f8fafc;
+        border-radius: 15px;
+        border: 1px solid #e2e8f0;
+        animation: slideIn 0.5s ease-out;
+      }
+
+      .description-container h3 {
+        color: #1e293b;
+        margin-bottom: 20px;
+        font-size: 1.5rem;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .description-item {
+        margin-bottom: 15px;
+      }
+
+      .description-item h4 {
+        color: #1e40af;
+        font-size: 1.2rem;
+        margin-bottom: 5px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .description-item p {
+        color: #1e293b;
+        font-size: 1rem;
+        line-height: 1.5;
+      }
+
+      @media (max-width: 768px) {
+        .container {
+          margin: 10px;
+          border-radius: 15px;
+        }
+
+        .header {
+          padding: 30px 20px;
+        }
+
+        .header h1 {
+          font-size: 2rem;
+        }
+
+        .form-container {
+          padding: 30px 20px;
+        }
+
+        .chart-row {
+          flex-direction: column;
+          align-items: center;
+        }
+
+        .chart {
+          max-width: 100%;
+        }
+
+        .description-container {
+          padding: 20px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <a href="/" class="back-link"
+          ><i class="fas fa-arrow-left"></i> Back to Home</a
+        >
+        <h1><i class="fas fa-clock"></i> Customer Lifecycle Analysis</h1>
+        <p>Analyze customer lifecycle based on historical data</p>
+        <p>Model loaded: {{ model_loaded }}</p>
+      </div>
+
+      <div class="form-container">
+        {% if not model_loaded %}
+        <div class="error">
+          <h3><i class="fas fa-exclamation-triangle"></i> Error</h3>
+          <p>
+            Data or model not loaded. Please ensure lifecycle.csv and model
+            files are available.
+          </p>
+        </div>
+        {% else %}
+        <form
+          method="POST"
+          action="/fetch_lifecycle"
+          id="lifecycleForm"
+          enctype="application/x-www-form-urlencoded"
+        >
+          <div class="form-group">
+            <label for="Recency"
+              ><i class="fas fa-clock"></i> Recency (days since last
+              purchase)</label
+            >
+            <input
+              type="number"
+              id="Recency"
+              name="Recency"
+              required
+              placeholder="Enter days since last purchase"
+              min="0"
+            />
+            <div class="help-text">
+              <i class="fas fa-info-circle"></i> Number of days since the
+              customer's last purchase
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="Tenure_Days"
+              ><i class="fas fa-calendar"></i> Tenure Days (total days as
+              customer)</label
+            >
+            <input
+              type="number"
+              id="Tenure_Days"
+              name="Tenure_Days"
+              required
+              placeholder="Enter total days as customer"
+              min="0"
+            />
+            <div class="help-text">
+              <i class="fas fa-info-circle"></i> Total number of days the
+              customer has been active
+            </div>
+          </div>
+          <button type="submit" class="submit-btn">
+            <i class="fas fa-search"></i> Predict Lifecycle Stage
+          </button>
+          <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p>Predicting lifecycle stage...</p>
+          </div>
+        </form>
+        <div class="result" id="predictionResult" style="display: none">
+          <h3><i class="fas fa-table"></i> Prediction Result</h3>
+          <table class="result-table">
+            <thead>
+              <tr>
+                <th>Lifecycle Stage</th>
+              </tr>
+            </thead>
+            <tbody id="resultBody">
+              <tr>
+                <td id="lifecycleStage"></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="error" id="errorMessage" style="display: none">
+          <h3><i class="fas fa-exclamation-triangle"></i> Error</h3>
+          <p id="errorText"></p>
+        </div>
+        <div class="description-container">
+          <h3>
+            <i class="fas fa-info-circle"></i> Lifecycle Stage Descriptions
+          </h3>
+          <div class="description-item">
+            <h4><i class="fas fa-exclamation-circle"></i> At-Risk</h4>
+            <p>
+              Customers who have not engaged recently, indicating a risk of
+              churn. They may require targeted interventions to re-engage.
+            </p>
+          </div>
+          <div class="description-item">
+            <h4><i class="fas fa-heart"></i> Loyal</h4>
+            <p>
+              Customers with consistent engagement and long tenure,
+              demonstrating strong loyalty and high value to the business.
+            </p>
+          </div>
+        </div>
+        <div class="charts-container">
+          <h3>
+            <i class="fas fa-chart-bar"></i> Customer Lifecycle Distribution
+          </h3>
+          <div class="chart-row">
+            <div class="chart">
+              <canvas id="barChart"></canvas>
+            </div>
+            <div class="chart">
+              <canvas id="pieChart"></canvas>
+            </div>
+          </div>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+
+    {% if model_loaded %}
+    <script>
+      // Fetch lifecycle data
+      document
+        .getElementById("lifecycleForm")
+        .addEventListener("submit", async (e) => {
+          e.preventDefault();
+          const formData = new FormData(e.target);
+          const resultDiv = document.getElementById("predictionResult");
+          const resultBody = document.getElementById("resultBody");
+          const errorDiv = document.getElementById("errorMessage");
+          const errorText = document.getElementById("errorText");
+          const lifecycleStage = document.getElementById("lifecycleStage");
+          const loadingDiv = document.getElementById("loading");
+          resultDiv.style.display = "none";
+          errorDiv.style.display = "none";
+          loadingDiv.style.display = "block";
+
+          try {
+            const response = await fetch("/fetch_lifecycle", {
+              method: "POST",
+              body: formData,
+            });
+            const data = await response.json();
+            loadingDiv.style.display = "none";
+            if (data.success) {
+              lifecycleStage.textContent = data.lifecycle_stage;
+              resultDiv.style.display = "block";
+            } else {
+              errorText.textContent = `Error: ${data.error}`;
+              errorDiv.style.display = "block";
+            }
+          } catch (err) {
+            loadingDiv.style.display = "none";
+            errorText.textContent = `Client error: ${err.message}`;
+            errorDiv.style.display = "block";
+          }
+        });
+
+      // Add smooth transitions for input
+      document.querySelectorAll("input").forEach((element) => {
+        element.addEventListener("focus", function () {
+          this.parentNode.style.transform = "scale(1.02)";
+          this.style.transform = "scale(1)";
+        });
+
+        element.addEventListener("blur", function () {
+          this.parentNode.style.transform = "scale(1)";
+        });
+      });
+
+      // Fetch and render charts
+      async function loadCharts() {
+        console.log("Fetching lifecycle stats...");
+        try {
+          const response = await fetch("/api/lifecycle_stats", {
+            method: "GET",
+            headers: {
+              Accept: "application/json",
+            },
+          });
+          console.log("Response status:", response.status);
+          console.log(
+            "Response headers:",
+            response.headers.get("Content-Type")
+          );
+
+          if (!response.ok) {
+            throw new Error(`HTTP error! Status: ${response.status}`);
+          }
+
+          const contentType = response.headers.get("Content-Type");
+          if (!contentType || !contentType.includes("application/json")) {
+            const text = await response.text();
+            console.error("Non-JSON response:", text);
+            throw new Error("Response is not valid JSON");
+          }
+
+          const data = await response.json();
+          console.log("Chart data:", data);
+
+          if (data.success && data.stages && data.stages.length > 0) {
+            const labels = data.stages;
+            const counts = data.counts;
+
+            if (counts.every((c) => c === 0)) {
+              document.getElementById("errorText").textContent =
+                "No data available for charts.";
+              document.getElementById("errorMessage").style.display = "block";
+              return;
+            }
+
+            const colors = [
+              "#1e40af",
+              "#0f766e",
+              "#d97706",
+              "#dc2626",
+              "#6d28d9",
+            ];
+            const borderColors = [
+              "#1d4ed8",
+              "#047857",
+              "#b45309",
+              "#b91c1c",
+              "#5b21b6",
+            ];
+            const backgroundColors = labels.map(
+              (_, i) => colors[i % colors.length]
+            );
+            const borderColorsList = labels.map(
+              (_, i) => borderColors[i % borderColors.length]
+            );
+
+            // Bar Chart
+            new Chart(document.getElementById("barChart"), {
+              type: "bar",
+              data: {
+                labels: labels,
+                datasets: [
+                  {
+                    label: "Customer Count",
+                    data: counts,
+                    backgroundColor: backgroundColors,
+                    borderColor: borderColorsList,
+                    borderWidth: 1,
+                  },
+                ],
+              },
+              options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                  y: {
+                    beginAtZero: true,
+                    title: {
+                      display: true,
+                      text: "Number of Customers",
+                    },
+                  },
+                  x: {
+                    title: {
+                      display: true,
+                      text: "Lifecycle Stage",
+                    },
+                  },
+                },
+                plugins: {
+                  legend: { display: false },
+                  title: {
+                    display: true,
+                    text: "Customer Lifecycle Distribution (Bar)",
+                  },
+                },
+              },
+            });
+
+            // Pie Chart
+            new Chart(document.getElementById("pieChart"), {
+              type: "pie",
+              data: {
+                labels: labels,
+                datasets: [
+                  {
+                    data: counts,
+                    backgroundColor: backgroundColors,
+                    borderColor: borderColorsList,
+                    borderWidth: 1,
+                  },
+                ],
+              },
+              options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                  legend: { position: "right" },
+                  title: {
+                    display: true,
+                    text: "Customer Lifecycle Distribution (Pie)",
+                  },
+                },
+              },
+            });
+          } else {
+            document.getElementById("errorText").textContent =
+              data.error || "Failed to load chart data.";
+            document.getElementById("errorMessage").style.display = "block";
+          }
+        } catch (error) {
+          console.error("Error fetching chart data:", error);
+          document.getElementById(
+            "errorText"
+          ).textContent = `Error fetching chart data: ${error.message}`;
+          document.getElementById("errorMessage").style.display = "block";
+        }
+      }
+
+      // Load charts when the page loads
+      document.addEventListener("DOMContentLoaded", loadCharts);
+    </script>
+    {% endif %}
+  </body>
+</html>
+
+
+
+
+
+from flask import Flask, request, jsonify, render_template
+import joblib
+import numpy as np
+import pandas as pd
+import os
+import json
+import pickle
+
+app = Flask(__name__)
+
+# Initialize global variables for demographic segmentation
+model = None
+scaler = None
+trained_features = []
+needs_scaling = False
+model_metadata = {}
+
+# Initialize global variables for lifecycle segmentation
+lifecycle_model = None
+lifecycle_scaler = None
+lifecycle_label_encoder = None
+lifecycle_features = []
+lifecycle_metadata = {}
+lifecycle_df = None
+lifecycle_model_loaded = False
+
+def load_model_files():
+    global model, scaler, trained_features, needs_scaling, model_metadata
+    
+    print("Checking for demographic model files...")
+    
+    required_files = ['demographic_cluster_model.pkl', 'demographic_scaler.pkl']
+    missing_files = []
+
+    for file in required_files:
+        if not os.path.exists(file):
+            missing_files.append(file)
+    
+    if missing_files:
+        print(f"Missing demographic model files: {missing_files}")
+        print("Please run train_model.py to create the required files first!")
+        return False
+    
+    try:
+        model = joblib.load('demographic_cluster_model.pkl')
+        scaler = joblib.load('demographic_scaler.pkl')
+        print("Demographic model and scaler loaded successfully")
+        
+        if os.path.exists('model_features.txt'):
+            with open('model_features.txt', 'r') as f:
+                trained_features = [line.strip() for line in f.readlines()]
+            print(f"Loaded {len(trained_features)} features from file")
+        else:
+            trained_features = [
+                'Year_Birth', 'Teenhome', 'Kidhome', 'Income', 'Education',
+                'Marital_Divorced', 'Marital_Married', 'Marital_Single', 
+                'Marital_Together', 'Marital_Widow'
+            ]
+            print(f"Using default features: {len(trained_features)} features")
+        
+        if os.path.exists('model_metadata.json'):
+            with open('model_metadata.json', 'r') as f:
+                model_metadata = json.load(f)
+                needs_scaling = model_metadata.get('needs_scaling', False)
+            print(f"Demographic model type: {model_metadata.get('model_type', 'Unknown')}")
+        else:
+            needs_scaling = False
+            print("No demographic metadata file found, assuming no scaling needed")
+        
+        print(f"Demographic model expects {len(trained_features)} features:")
+        for i, feature in enumerate(trained_features):
+            print(f"  {i+1}. {feature}")
+        print(f"Needs scaling: {needs_scaling}")
+        
+        return True
+        
+    except Exception as e:
+        print(f"Error loading demographic model files: {e}")
+        model = None
+        scaler = None
+        trained_features = []
+        return False
+
+def load_lifecycle_model_files():
+    global lifecycle_model, lifecycle_scaler, lifecycle_label_encoder, lifecycle_features, lifecycle_metadata, lifecycle_df, lifecycle_model_loaded
+    
+    print("Checking for lifecycle model files...")
+    
+    MODEL_DIR = os.path.join(os.path.dirname(__file__), 'CustomerLifeCycle', 'Model', 'model')
+    MODEL_PATH = os.path.join(MODEL_DIR, 'model.pkl')
+    SCALER_PATH = os.path.join(MODEL_DIR, 'lifecycle_scaler.pkl')
+    LABEL_ENCODER_PATH = os.path.join(MODEL_DIR, 'label_encoder.pkl')
+    FEATURES_PATH = os.path.join(MODEL_DIR, 'lifecycle_features.pkl')
+    METADATA_PATH = os.path.join(MODEL_DIR, 'lifecycle_model_metadata.pkl')
+    DATA_PATH = os.path.join(os.path.dirname(__file__), 'CustomerLifeCycle', 'lifecycle.csv')
+    
+    required_files = [MODEL_PATH, SCALER_PATH, LABEL_ENCODER_PATH, FEATURES_PATH, METADATA_PATH, DATA_PATH]
+    missing_files = [f for f in required_files if not os.path.exists(f)]
+    
+    if missing_files:
+        print(f"Missing lifecycle model files: {missing_files}")
+        print("Please run CustomerLifeCycle/Model/train_lifecycle_model.py to create the required files!")
+        lifecycle_model_loaded = False
+        return False
+    
+    try:
+        lifecycle_model = joblib.load(MODEL_PATH)
+        lifecycle_scaler = joblib.load(SCALER_PATH)
+        lifecycle_label_encoder = joblib.load(LABEL_ENCODER_PATH)
+        with open(FEATURES_PATH, 'rb') as f:
+            lifecycle_features = pickle.load(f)
+        with open(METADATA_PATH, 'rb') as f:
+            lifecycle_metadata = pickle.load(f)
+        
+        lifecycle_df = pd.read_csv(DATA_PATH)
+        print(f"Loaded lifecycle.csv: {lifecycle_df.shape} rows, columns: {lifecycle_df.columns.tolist()}")
+        print(f"Sample IDs: {lifecycle_df['ID'].head().tolist()}")
+        
+        lifecycle_model_loaded = True
+        print("Lifecycle model and data loaded successfully!")
+        print(f"Lifecycle model expects {len(lifecycle_features)} features: {lifecycle_features}")
+        return True
+    except Exception as e:
+        print(f"Error loading lifecycle model files: {e}")
+        lifecycle_model = None
+        lifecycle_scaler = None
+        lifecycle_label_encoder = None
+        lifecycle_features = []
+        lifecycle_model_loaded = False
+        return False
+
+# Load models on startup
+model_loaded = load_model_files()
+lifecycle_model_loaded = load_lifecycle_model_files()
+
+cluster_labels = {
+    0: "Young Singles/Couples", 
+    1: "Middle-aged Small Families",
+    2: "Senior Singles/Couples", 
+    3: "Middle-aged Large Families"
+}
+
+def predict_customer_segment(year_birth, teenhome, kidhome, income, education, marital_status='Single'):
+    if model is None:
+        print("Demographic model is not loaded")
+        return None, None
+    
+    try:
+        marital_dummies = {
+            'Marital_Divorced': 1 if marital_status == 'Divorced' else 0,
+            'Marital_Married': 1 if marital_status == 'Married' else 0,
+            'Marital_Single': 1 if marital_status == 'Single' else 0,
+            'Marital_Together': 1 if marital_status == 'Together' else 0,
+            'Marital_Widow': 1 if marital_status == 'Widow' else 0
+        }
+        
+        features_dict = {
+            'Year_Birth': year_birth,
+            'Teenhome': teenhome,
+            'Kidhome': kidhome,
+            'Income': income,
+            'Education': education,
+            **marital_dummies
+        }
+        
+        print(f"Input features: {features_dict}")
+        
+        features = [features_dict.get(feature, 0) for feature in trained_features]
+        features_array = np.array(features).reshape(1, -1)
+        
+        print(f"Feature array shape: {features_array.shape}")
+        print(f"Feature values: {features}")
+        
+        if needs_scaling and scaler is not None:
+            print("Applying scaling...")
+            features_array = scaler.transform(features_array)
+        
+        print("Making prediction...")
+        prediction = model.predict(features_array)[0]
+        probabilities = model.predict_proba(features_array)[0]
+        
+        print(f"Prediction successful: Cluster {prediction}")
+        print(f"Probabilities: {probabilities}")
+        
+        return int(prediction), probabilities.tolist()
+        
+    except Exception as e:
+        print(f"Prediction error: {e}")
+        print(f"Error type: {type(e).__name__}")
+        import traceback
+        traceback.print_exc()
+        return None, None
+
+@app.route('/')
+def landing():
+    print(f"Accessing route: {request.url}")
+    if not os.path.exists(os.path.join('templates', 'index.html')):
+        print("Error: templates/index.html not found")
+    return render_template('index.html')
+
+@app.route('/demographics')
+def demographics():
+    print(f"Accessing route: {request.url}")
+    if not os.path.exists(os.path.join('templates', 'demographics.html')):
+        print("Error: templates/demographics.html not found")
+    return render_template('demographics.html', model_loaded=model_loaded)
+
+@app.route('/spending')
+def spending():
+    print(f"Accessing route: {request.url}")
+    if not os.path.exists(os.path.join('templates', 'spending.html')):
+        print("Error: templates/spending.html not found")
+    return render_template('spending.html')
+
+@app.route('/behavior')
+def behavior():
+    print(f"Accessing route: {request.url}")
+    if not os.path.exists(os.path.join('templates', 'behavior.html')):
+        print("Error: templates/behavior.html not found")
+    return render_template('behavior.html')
+
+@app.route('/customerlifecycle')
+def lifecycle():
+    print(f"Accessing route: {request.url}")
+    if not os.path.exists(os.path.join('templates', 'customerlifecycle.html')):
+        print("Error: templates/lifecycle.html not found")
+    return render_template('customerlifecycle.html', model_loaded=lifecycle_model_loaded)
+
+@app.route('/predict', methods=['POST'])
+def predict():
+    print(f"Accessing route: {request.url}")
+    try:
+        data = request.get_json()
+        print(f"Received prediction request: {data}")
+        
+        year_birth = int(data['year_birth'])
+        teenhome = int(data['teenhome'])
+        kidhome = int(data['kidhome'])
+        income = float(data['income'])
+        education = float(data['education'])
+        marital_status = data.get('marital_status', 'Single')
+        
+        cluster, probabilities = predict_customer_segment(
+            year_birth, teenhome, kidhome, income, education, marital_status
+        )
+        
+        if cluster is None:
+            return jsonify({'error': 'Model not loaded or prediction failed'}), 500
+        
+        response = {
+            'cluster': cluster,
+            'cluster_label': cluster_labels.get(cluster, 'Unknown'),
+            'confidence': round(probabilities[cluster], 3),
+            'all_probabilities': {f'Cluster {i}': round(prob, 3) for i, prob in enumerate(probabilities)},
+            'input_data': {
+                'year_birth': year_birth, 'teenhome': teenhome, 'kidhome': kidhome,
+                'income': income, 'education': education, 'marital_status': marital_status
+            }
+        }
+        
+        return jsonify(response)
+    
+    except Exception as e:
+        print(f"API prediction error: {e}")
+        return jsonify({'error': str(e)}), 400
+
+@app.route('/predict_form', methods=['POST'])
+def predict_form():
+    print(f"Accessing route: {request.url}")
+    try:
+        print("Received form submission")
+        
+        year_birth = int(request.form['year_birth'])
+        teenhome = int(request.form['teenhome'])
+        kidhome = int(request.form['kidhome'])
+        income = float(request.form['income'])
+        education = float(request.form['education'])
+        marital_status = request.form.get('marital_status', 'Single')
+        
+        print(f"Form data: year_birth={year_birth}, teenhome={teenhome}, kidhome={kidhome}")
+        print(f"Form data: income={income}, education={education}, marital={marital_status}")
+        
+        cluster, probabilities = predict_customer_segment(
+            year_birth, teenhome, kidhome, income, education, marital_status
+        )
+        
+        if cluster is None:
+            error_msg = 'Model not loaded or prediction failed. Please check if model files exist.'
+            return render_template('demographics.html', error=error_msg, model_loaded=model_loaded)
+        
+        result = {
+            'cluster': cluster,
+            'cluster_label': cluster_labels.get(cluster, 'Unknown'),
+            'confidence': round(probabilities[cluster], 3),
+            'all_probabilities': {f'Cluster {i}': round(prob, 3) for i, prob in enumerate(probabilities)}
+        }
+        
+        print(f"Prediction result: {result}")
+        
+        return render_template('demographics.html', result=result, input_data=request.form, model_loaded=model_loaded)
+    
+    except Exception as e:
+        print(f"Form prediction error: {e}")
+        import traceback
+        traceback.print_exc()
+        return render_template('demographics.html', error=str(e), model_loaded=model_loaded)
+
+@app.route('/api/info')
+def model_info():
+    print(f"Accessing route: {request.url}")
+    info = {
+        'model_type': model_metadata.get('model_type', 'Unknown'),
+        'features': trained_features,
+        'clusters': cluster_labels,
+        'model_loaded': model is not None,
+        'needs_scaling': needs_scaling,
+        'n_features': len(trained_features),
+        'files_exist': {
+            'model': os.path.exists('demographic_cluster_model.pkl'),
+            'scaler': os.path.exists('demographic_scaler.pkl'),
+            'features': os.path.exists('model_features.txt'),
+            'metadata': os.path.exists('model_metadata.json')
+        }
+    }
+    return jsonify(info)
+
+@app.route('/api/reload_model')
+def reload_model():
+    print(f"Accessing route: {request.url}")
+    success = load_model_files()
+    return jsonify({
+        'success': success,
+        'model_loaded': model is not None,
+        'message': 'Demographic model reloaded successfully' if success else 'Failed to reload demographic model'
+    })
+
+@app.route('/fetch_lifecycle', methods=['POST'])
+def fetch_lifecycle():
+    """API endpoint for lifecycle predictions"""
+    print(f"Accessing route: {request.url}")
+    if not lifecycle_model_loaded:
+        error_msg = 'Lifecycle model or data not loaded'
+        print(f"Error: {error_msg}")
+        return jsonify({'success': False, 'error': error_msg}), 500
+    
+    try:
+        # Get Recency and Tenure_Days from form or JSON
+        recency = request.form.get('Recency') if request.form.get('Recency') else request.get_json().get('Recency') if request.is_json else None
+        tenure_days = request.form.get('Tenure_Days') if request.form.get('Tenure_Days') else request.get_json().get('Tenure_Days') if request.is_json else None
+        
+        if recency is None or tenure_days is None:
+            error_msg = 'Recency and Tenure_Days are required'
+            print(f"Error: {error_msg}")
+            return jsonify({'success': False, 'error': error_msg}), 400
+        
+        # Convert inputs to float
+        try:
+            recency = float(recency)
+            tenure_days = float(tenure_days)
+            if recency < 0 or tenure_days < 0:
+                raise ValueError("Recency and Tenure_Days must be non-negative")
+        except ValueError as ve:
+            error_msg = f"Invalid input: {str(ve)}"
+            print(f"Error: {error_msg}")
+            return jsonify({'success': False, 'error': error_msg}), 400
+        
+        # Prepare feature DataFrame
+        input_data = {
+            'Recency': recency,
+            'Tenure_Days': tenure_days
+        }
+        # Add default values for other features
+        for feature in lifecycle_features:
+            if feature not in input_data:
+                input_data[feature] = lifecycle_df[feature].median()
+        
+        X = pd.DataFrame([input_data], columns=lifecycle_features)
+        
+        # Handle missing values
+        for col in X.columns:
+            if X[col].isnull().any():
+                X[col] = X[col].fillna(lifecycle_df[col].median())
+        
+        # Handle infinite values
+        X = X.replace([np.inf, -np.inf], np.nan)
+        for col in X.columns:
+            if X[col].isnull().any():
+                X[col] = X[col].fillna(lifecycle_df[col].median())
+        
+        # Cap extremely large values
+        max_float32 = 3.4e38
+        X = X.clip(upper=max_float32, lower=-max_float32)
+        
+        # Scale features, preserving column names
+        X_scaled = pd.DataFrame(lifecycle_scaler.transform(X), columns=lifecycle_features)
+        
+        # Predict lifecycle stage
+        prediction = lifecycle_model.predict(X_scaled)
+        lifecycle_stage = lifecycle_label_encoder.inverse_transform(prediction)[0]
+        
+        # Prepare response
+        result = {
+            'lifecycle_stage': lifecycle_stage
+        }
+        print(f"Prediction successful: {result}")
+        return jsonify({'success': True, **result}), 200
+    
+    except Exception as e:
+        print(f"Lifecycle prediction error: {str(e)}")
+        error_msg = f"Server error: {str(e)}"
+        return jsonify({'success': False, 'error': error_msg}), 500
+
+@app.route('/api/lifecycle_info')
+def lifecycle_model_info():
+    print(f"Accessing route: {request.url}")
+    MODEL_DIR = os.path.join(os.path.dirname(__file__), 'CustomerLifeCycle', 'Model', 'model')
+    DATA_PATH = os.path.join(os.path.dirname(__file__), 'CustomerLifeCycle', 'lifecycle.csv')
+    info = {
+        'model_type': lifecycle_metadata.get('model_type', 'Unknown'),
+        'features': lifecycle_features,
+        'classes': lifecycle_metadata.get('classes', []),
+        'model_loaded': lifecycle_model is not None,
+        'needs_scaling': lifecycle_metadata.get('needs_scaling', False),
+        'n_features': len(lifecycle_features),
+        'files_exist': {
+            'model': os.path.exists(os.path.join(MODEL_DIR, 'model.pkl')),
+            'scaler': os.path.exists(os.path.join(MODEL_DIR, 'lifecycle_scaler.pkl')),
+            'label_encoder': os.path.exists(os.path.join(MODEL_DIR, 'label_encoder.pkl')),
+            'features': os.path.exists(os.path.join(MODEL_DIR, 'lifecycle_features.pkl')),
+            'metadata': os.path.exists(os.path.join(MODEL_DIR, 'lifecycle_model_metadata.pkl')),
+            'data': os.path.exists(DATA_PATH)
+        }
+    }
+    return jsonify(info)
+
+@app.route('/api/reload_lifecycle_model')
+def reload_lifecycle_model():
+    print(f"Accessing route: {request.url}")
+    success = load_lifecycle_model_files()
+    return jsonify({
+        'success': success,
+        'model_loaded': lifecycle_model is not None,
+        'message': 'Lifecycle model reloaded successfully' if success else 'Failed to reload lifecycle model'
+    })
+
+@app.errorhandler(404)
+def page_not_found(e):
+    print(f"404 Error: Requested URL {request.url} not found")
+    return jsonify({'error': 'Not Found', 'message': 'The requested URL was not found on the server'}), 404
+
+if __name__ == '__main__':
+    if not os.path.exists('templates'):
+        os.makedirs('templates')
+        print("Created templates directory")
+    
+    print("Starting Flask app...")
+    print("Customer Segmentation API (Demographic & Lifecycle)")
+    print("Visit: http://localhost:5000")
+    print(f"Demographic model loaded: {model_loaded}")
+    print(f"Lifecycle model loaded: {lifecycle_model_loaded}")
+    
+    if not model_loaded:
+        print("\nWARNING: Demographic model not loaded!")
+        print("To fix this:")
+        print("   1. Run your train_model.py script")
+        print("   2. Make sure it creates the required files")
+        print("   3. Restart this Flask app")
+    
+    if not lifecycle_model_loaded:
+        print("\nWARNING: Lifecycle model not loaded!")
+        print("To fix this:")
+        print("   1. Run CustomerLifeCycle/Model/train_lifecycle_model.py")
+        print("   2. Make sure it creates the required files in CustomerLifeCycle/Model/model/")
+        print("   3. Restart this Flask app")
+    
+    try:
+        app.run(debug=True, host='127.0.0.1', port=5000)
+    except KeyboardInterrupt:
+        print("\nFlask app stopped by user")
+    except Exception as e:
+        print(f"Error running Flask app: {e}")
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import pandas as pd
+import numpy as np
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.preprocessing import StandardScaler, LabelEncoder
+from sklearn.model_selection import train_test_split
+import joblib
+import pickle
+import os
+
+# Define paths relative to the script location
+HERE = os.path.dirname(__file__)
+DATA_PATH = os.path.join(HERE, '..', 'lifecycle.csv')
+MODEL_DIR = os.path.join(HERE, 'model')
+
+print("Training customer lifecycle stage prediction model...")
+
+try:
+    # Create model directory if it doesn't exist
+    os.makedirs(MODEL_DIR, exist_ok=True)
+    
+    # Load the dataset
+    df = pd.read_csv(DATA_PATH)
+    print("Lifecycle CSV Columns:", df.columns.tolist())
+    print(f"Dataset loaded: {df.shape}")
+
+    # Check if Lifecycle_Stage exists
+    if 'Lifecycle_Stage' not in df.columns:
+        print("Lifecycle_Stage column not found! Assigning stages based on logic...")
+        df['Lifecycle_Stage'] = df.apply(
+            lambda row: (
+                "At-Risk" if row['Recency'] > 60 
+                else "Loyal" if row['Tenure_Days'] > 365 
+                else "Active"
+            ), axis=1
+        )
+        
+    # Define lifecycle features
+    lifecycle_features = [
+        'Recency', 'Tenure_Days', 'Engagement_Ratio', 'Activity_Index', 'Total_Spending'
+    ]
+
+    # Filter available features
+    available_features = [f for f in lifecycle_features if f in df.columns]
+    print(f"Using {len(available_features)} features: {available_features}")
+
+    # Prepare data
+    X = df[available_features].copy()
+    y = df['Lifecycle_Stage'].copy()
+
+    # Handle missing values
+    for col in X.columns:
+        if X[col].isnull().sum() > 0:
+            print(f"Filling {X[col].isnull().sum()} missing values in {col}")
+            X[col] = X[col].fillna(X[col].median())
+
+    # Handle infinite values
+    print("Checking for infinite values in features:")
+    print(np.isinf(X).sum())
+    X = X.replace([np.inf, -np.inf], np.nan)
+    for col in X.columns:
+        if X[col].isnull().sum() > 0:  # Check again after replacing inf
+            print(f"Filling {X[col].isnull().sum()} missing values in {col} after inf replacement")
+            X[col] = X[col].fillna(X[col].median())
+
+    # Cap extremely large values to prevent float32 overflow
+    max_float32 = 3.4e38
+    X = X.clip(upper=max_float32, lower=-max_float32)
+
+    # Encode target
+    label_encoder = LabelEncoder()
+    y_encoded = label_encoder.fit_transform(y)
+
+    # Split data
+    X_train, X_test, y_train, y_test = train_test_split(
+        X, y_encoded, test_size=0.2, random_state=42, stratify=y_encoded
+    )
+
+    print(f"Training set: {X_train.shape[0]} samples")
+    print(f"Test set: {X_test.shape[0]} samples")
+
+    # Train Random Forest
+    print("Training Random Forest model...")
+    model = RandomForestClassifier(n_estimators=100, random_state=42)
+    model.fit(X_train, y_train)
+
+    # Evaluate
+    train_score = model.score(X_train, y_train)
+    test_score = model.score(X_test, y_test)
+    print(f"Training accuracy: {train_score:.3f}")
+    print(f"Test accuracy: {test_score:.3f}")
+
+    # Create scaler (for consistency)
+    scaler = StandardScaler()
+    scaler.fit(X_train)
+
+    # Save model files
+    print("\nSaving model files...")
+    joblib.dump(model, os.path.join(MODEL_DIR, 'model.pkl'))
+    joblib.dump(scaler, os.path.join(MODEL_DIR, 'lifecycle_scaler.pkl'))
+    joblib.dump(label_encoder, os.path.join(MODEL_DIR, 'label_encoder.pkl'))
+
+    # Save feature names
+    with open(os.path.join(MODEL_DIR, 'lifecycle_features.pkl'), 'wb') as f:
+        pickle.dump(available_features, f)
+
+    # Save metadata
+    metadata = {
+        'model_type': 'RandomForestClassifier',
+        'features': available_features,
+        'needs_scaling': True,
+        'n_classes': len(label_encoder.classes_),
+        'test_accuracy': test_score,
+        'feature_count': len(available_features),
+        'classes': list(label_encoder.classes_)
+    }
+    with open(os.path.join(MODEL_DIR, 'lifecycle_model_metadata.pkl'), 'wb') as f:
+        pickle.dump(metadata, f)
+
+    print("\nModel files saved successfully in:", MODEL_DIR)
+    print("Files created:")
+    print("  - model.pkl")
+    print("  - lifecycle_scaler.pkl")
+    print("  - label_encoder.pkl")
+    print("  - lifecycle_features.pkl")
+    print("  - lifecycle_model_metadata.pkl")
+
+    # Test the model
+    print("\nTesting saved model...")
+    loaded_model = joblib.load(os.path.join(MODEL_DIR, 'model.pkl'))
+    loaded_label_encoder = joblib.load(os.path.join(MODEL_DIR, 'label_encoder.pkl'))
+    test_prediction = loaded_model.predict(X_test.iloc[0:1])
+    test_probabilities = loaded_model.predict_proba(X_test.iloc[0:1])
+    print(f"Test prediction: {loaded_label_encoder.inverse_transform(test_prediction)[0]}")
+    print(f"Test probabilities: {test_probabilities[0]}")
+
+    print("\nModel training completed successfully!")
+    print("You can now integrate with your Flask app!")
+
+except FileNotFoundError:
+    print(f"Error: {DATA_PATH} not found! Please ensure lifecycle.csv is in CustomerLifeCycle/")
+except Exception as e:
+    print(f"Error during training: {e}")
+    import traceback
+    traceback.print_exc()
+
+
+
+
+    
+
+# Prepare data (assuming X_scaled is already defined)
+X = df[['Recency', 'Tenure_Days']]  # Or your selected features
+X_scaled = StandardScaler().fit_transform(X)
+
+# Calculate WCSS for k values from 1 to 10
+wcss = []
+k_range = range(1, 11)
+
+for k in k_range:
+    kmeans = KMeans(n_clusters=k, random_state=42, n_init=10)
+    kmeans.fit(X_scaled)
+    wcss.append(kmeans.inertia_)  # Inertia = Within-Cluster Sum of Squares
+
+# Plot the elbow curve
+plt.figure(figsize=(10, 6))
+plt.plot(k_range, wcss, 'bo-', markersize=8)
+plt.title('Elbow Method for Optimal k')
+plt.xlabel('Number of Clusters (k)')
+plt.ylabel('Within-Cluster Sum of Squares (WCSS)')
+plt.grid(True)
+plt.xticks(k_range)
+plt.show()
+
+# Optional: Automate elbow detection (example)
+# Calculate the difference in slopes
+diffs = [wcss[i-1] - wcss[i] for i in range(1, len(wcss))]
+elbow_index = diffs.index(max(diffs)) + 1  # +1 because index starts at k=2
+optimal_k = elbow_index + 1  # Add 1 since indexing starts from 0

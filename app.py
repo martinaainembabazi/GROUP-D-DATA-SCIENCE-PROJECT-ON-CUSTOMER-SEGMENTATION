@@ -4,20 +4,31 @@ import numpy as np
 import pandas as pd
 import os
 import json
+import sys
+import pickle
 
 app = Flask(__name__)
 
-# Initialize global variables
+# Initialize global variables for demographic segmentation
 model = None
 scaler = None
 trained_features = []
 needs_scaling = False
 model_metadata = {}
 
+# Initialize global variables for lifecycle segmentation
+lifecycle_model = None
+lifecycle_scaler = None
+lifecycle_label_encoder = None
+lifecycle_features = []
+lifecycle_metadata = {}
+lifecycle_df = None
+lifecycle_model_loaded = False
+
 def load_model_files():
     global model, scaler, trained_features, needs_scaling, model_metadata
     
-    print("Checking for model files...")
+    print("Checking for demographic model files...")
     
     # Check if files exist
     required_files = ['demographic_cluster_model.pkl', 'demographic_scaler.pkl']
@@ -28,7 +39,7 @@ def load_model_files():
             missing_files.append(file)
     
     if missing_files:
-        print(f"Missing model files: {missing_files}")
+        print(f"Missing demographic model files: {missing_files}")
         print("Please run train_model.py to create the required files first!")
         return False
     
@@ -36,7 +47,7 @@ def load_model_files():
         # Load model and scaler
         model = joblib.load('demographic_cluster_model.pkl')
         scaler = joblib.load('demographic_scaler.pkl')
-        print("Model and scaler loaded successfully")
+        print("Demographic model and scaler loaded successfully")
         
         # Load features file if it exists
         if os.path.exists('model_features.txt'):
@@ -57,12 +68,12 @@ def load_model_files():
             with open('model_metadata.json', 'r') as f:
                 model_metadata = json.load(f)
                 needs_scaling = model_metadata.get('needs_scaling', False)
-            print(f"Model type: {model_metadata.get('model_type', 'Unknown')}")
+            print(f"Demographic model type: {model_metadata.get('model_type', 'Unknown')}")
         else:
             needs_scaling = False
-            print("No metadata file found, assuming no scaling needed")
+            print("No demographic metadata file found, assuming no scaling needed")
         
-        print(f"Model expects {len(trained_features)} features:")
+        print(f"Demographic model expects {len(trained_features)} features:")
         for i, feature in enumerate(trained_features):
             print(f"  {i+1}. {feature}")
         print(f"Needs scaling: {needs_scaling}")
@@ -70,16 +81,104 @@ def load_model_files():
         return True
         
     except Exception as e:
-        print(f"Error loading model files: {e}")
+        print(f"Error loading demographic model files: {e}")
         model = None
         scaler = None
         trained_features = []
         return False
 
-# Load model on startup
-model_loaded = load_model_files()
+# Paths for lifecycle model files
+LIFECYCLE_MODEL_DIR = os.path.join('CustomerLifeCycle', 'model', 'model')
+LIFECYCLE_DATA_PATH = os.path.join('CustomerLifeCycle', 'lifecycle.csv')
 
-# Define cluster labels
+def load_lifecycle_model_files():
+    global lifecycle_model, lifecycle_scaler, lifecycle_label_encoder, lifecycle_features, lifecycle_df, lifecycle_model_loaded
+    print("Checking for lifecycle model files...")
+    print(f"Python version: {sys.version}")
+    print(f"Current working directory: {os.getcwd()}")
+    print(f"Model directory: {LIFECYCLE_MODEL_DIR}")
+    print(f"Data file path: {LIFECYCLE_DATA_PATH}")
+    
+    try:
+        # Load lifecycle model and related files
+        lifecycle_model_path = os.path.join(LIFECYCLE_MODEL_DIR, 'model.pkl')
+        lifecycle_scaler_path = os.path.join(LIFECYCLE_MODEL_DIR, 'lifecycle_scaler.pkl')
+        lifecycle_label_encoder_path = os.path.join(LIFECYCLE_MODEL_DIR, 'label_encoder.pkl')
+        lifecycle_features_path = os.path.join(LIFECYCLE_MODEL_DIR, 'lifecycle_features.pkl')
+        lifecycle_metadata_path = os.path.join(LIFECYCLE_MODEL_DIR, 'lifecycle_model_metadata.pkl')
+
+        # Check if files exist
+        missing_files = []
+        for p in [lifecycle_model_path, lifecycle_scaler_path, lifecycle_label_encoder_path, lifecycle_features_path, lifecycle_metadata_path]:
+            if not os.path.exists(p):
+                missing_files.append(p)
+            else:
+                print(f"Found file: {p}")
+        if missing_files:
+            print(f"Missing lifecycle model files: {missing_files}")
+            print("Please run train_lifecycle_model.py to create the required files first!")
+            return False
+
+        # Load lifecycle data
+        if os.path.exists(LIFECYCLE_DATA_PATH):
+            lifecycle_df = pd.read_csv(LIFECYCLE_DATA_PATH)
+            print(f"Loaded lifecycle.csv: {lifecycle_df.shape} rows, columns: {list(lifecycle_df.columns)}")
+            print(f"Sample IDs: {lifecycle_df['ID'].head().tolist()}")
+        else:
+            print(f"Lifecycle data file not found at {LIFECYCLE_DATA_PATH}")
+            return False
+
+        # Load each file with specific error handling
+        try:
+            lifecycle_model = joblib.load(lifecycle_model_path)
+            print("Loaded model.pkl successfully")
+        except Exception as e:
+            print(f"Error loading model.pkl: {str(e)}")
+            return False
+
+        try:
+            lifecycle_scaler = joblib.load(lifecycle_scaler_path)
+            print("Loaded lifecycle_scaler.pkl successfully")
+        except Exception as e:
+            print(f"Error loading lifecycle_scaler.pkl: {str(e)}")
+            return False
+
+        try:
+            lifecycle_label_encoder = joblib.load(lifecycle_label_encoder_path)
+            print("Loaded label_encoder.pkl successfully")
+        except Exception as e:
+            print(f"Error loading label_encoder.pkl: {str(e)}")
+            return False
+
+        try:
+            lifecycle_features = joblib.load(lifecycle_features_path)
+            print(f"Loaded lifecycle_features.pkl successfully: {lifecycle_features}")
+        except Exception as e:
+            print(f"Error loading lifecycle_features.pkl: {str(e)}")
+            return False
+
+        try:
+            lifecycle_metadata = joblib.load(lifecycle_metadata_path)
+            print(f"Loaded lifecycle_model_metadata.pkl successfully: {lifecycle_metadata}")
+        except Exception as e:
+            print(f"Error loading lifecycle_model_metadata.pkl: {str(e)}")
+            return False
+
+        print(f"Lifecycle model expects {len(lifecycle_features)} features: {lifecycle_features}")
+        print("Lifecycle model and data loaded successfully!")
+        lifecycle_model_loaded = True
+        return True
+
+    except Exception as e:
+        print(f"Unexpected error loading lifecycle model files: {str(e)}")
+        lifecycle_model_loaded = False
+        return False
+
+# Load models on startup
+model_loaded = load_model_files()
+lifecycle_model_loaded = load_lifecycle_model_files()
+
+# Define cluster labels for demographic segmentation
 cluster_labels = {
     0: "Young Singles/Couples", 
     1: "Middle-aged Small Families",
@@ -90,7 +189,7 @@ cluster_labels = {
 def predict_customer_segment(year_birth, teenhome, kidhome, income, education, marital_status='Single'):
     """Predict demographic cluster for a new customer"""
     if model is None:
-        print("Model is not loaded")
+        print("Demographic model is not loaded")
         return None, None
     
     try:
@@ -164,14 +263,14 @@ def behavior():
     """Purchase behavior segmentation page"""
     return render_template('behavior.html')
 
-@app.route('/lifecycle')
+@app.route('/customerlifecycle')
 def lifecycle():
     """Customer lifecycle segmentation page"""
-    return render_template('lifecycle.html')
+    return render_template('customerlifecycle.html', model_loaded=lifecycle_model_loaded)
 
 @app.route('/predict', methods=['POST'])
 def predict():
-    """API endpoint for predictions"""
+    """API endpoint for demographic predictions"""
     try:
         data = request.get_json()
         print(f"Received prediction request: {data}")
@@ -209,7 +308,7 @@ def predict():
 
 @app.route('/predict_form', methods=['POST'])
 def predict_form():
-    """Handle form submission from HTML"""
+    """Handle form submission from HTML for demographic predictions"""
     try:
         print("Received form submission")
         
@@ -250,7 +349,7 @@ def predict_form():
 
 @app.route('/api/info')
 def model_info():
-    """API endpoint for model information"""
+    """API endpoint for demographic model information"""
     info = {
         'model_type': model_metadata.get('model_type', 'Unknown'),
         'features': trained_features,
@@ -269,12 +368,144 @@ def model_info():
 
 @app.route('/api/reload_model')
 def reload_model():
-    """Reload model files"""
+    """Reload demographic model files"""
     success = load_model_files()
     return jsonify({
         'success': success,
         'model_loaded': model is not None,
-        'message': 'Model reloaded successfully' if success else 'Failed to reload model'
+        'message': 'Demographic model reloaded successfully' if success else 'Failed to reload demographic model'
+    })
+
+@app.route('/fetch_lifecycle', methods=['POST'])
+def fetch_lifecycle():
+    """API endpoint for lifecycle predictions"""
+    print(f"Accessing route: {request.url}")
+    if not lifecycle_model_loaded:
+        error_msg = 'Lifecycle model or data not loaded'
+        print(f"Error: {error_msg}")
+        return jsonify({'success': False, 'error': error_msg}), 500
+    
+    try:
+        # Get Recency and Tenure_Days from form or JSON
+        recency = request.form.get('Recency') if request.form.get('Recency') else request.get_json().get('Recency') if request.is_json else None
+        tenure_days = request.form.get('Tenure_Days') if request.form.get('Tenure_Days') else request.get_json().get('Tenure_Days') if request.is_json else None
+        
+        if recency is None or tenure_days is None:
+            error_msg = 'Recency and Tenure_Days are required'
+            print(f"Error: {error_msg}")
+            return jsonify({'success': False, 'error': error_msg}), 400
+        
+        # Convert inputs to float
+        try:
+            recency = float(recency)
+            tenure_days = float(tenure_days)
+            if recency < 0 or tenure_days < 0:
+                raise ValueError("Recency and Tenure_Days must be non-negative")
+        except ValueError as ve:
+            error_msg = f"Invalid input: {str(ve)}"
+            print(f"Error: {error_msg}")
+            return jsonify({'success': False, 'error': error_msg}), 400
+        
+        # Prepare feature DataFrame
+        input_data = {
+            'Recency': recency,
+            'Tenure_Days': tenure_days
+        }
+        # Add default values for other features
+        for feature in lifecycle_features:
+            if feature not in input_data:
+                input_data[feature] = lifecycle_df[feature].median()
+        
+        X = pd.DataFrame([input_data], columns=lifecycle_features)
+        
+        # Handle missing values
+        for col in X.columns:
+            if X[col].isnull().any():
+                X[col] = X[col].fillna(lifecycle_df[col].median())
+        
+        # Handle infinite values
+        X = X.replace([np.inf, -np.inf], np.nan)
+        for col in X.columns:
+            if X[col].isnull().any():
+                X[col] = X[col].fillna(lifecycle_df[col].median())
+        
+        # Cap extremely large values
+        max_float32 = 3.4e38
+        X = X.clip(upper=max_float32, lower=-max_float32)
+        
+        # Scale features, preserving column names
+        X_scaled = pd.DataFrame(lifecycle_scaler.transform(X), columns=lifecycle_features)
+        
+        # Predict lifecycle stage
+        prediction = lifecycle_model.predict(X_scaled)
+        lifecycle_stage = lifecycle_label_encoder.inverse_transform(prediction)[0]
+        
+        # Prepare response
+        result = {
+            'lifecycle_stage': lifecycle_stage
+        }
+        print(f"Prediction successful: {result}")
+        return jsonify({'success': True, **result}), 200
+    
+    except Exception as e:
+        print(f"Lifecycle prediction error: {str(e)}")
+        error_msg = f"Server error: {str(e)}"
+        return jsonify({'success': False, 'error': error_msg}), 500
+
+
+@app.route('/api/lifecycle_stats', methods=['GET'])
+def lifecycle_stats():
+    """API endpoint for lifecycle stage distribution"""
+    if not lifecycle_model_loaded:
+        return jsonify({'success': False, 'error': 'Lifecycle model or data not loaded'})
+    
+    try:
+        # Calculate distribution of lifecycle stages
+        stage_counts = lifecycle_df['Lifecycle_Stage'].value_counts()
+        stages = stage_counts.index.tolist()
+        counts = stage_counts.values.tolist()
+        
+        return jsonify({
+            'success': True,
+            'stages': stages,
+            'counts': counts
+        })
+    
+    except Exception as e:
+        print(f"Lifecycle stats error: {e}")
+        return jsonify({'success': False, 'error': str(e)})
+
+@app.route('/api/lifecycle_info')
+def lifecycle_model_info():
+    """API endpoint for lifecycle model information"""
+    MODEL_DIR = os.path.join(os.path.dirname(__file__), '..', 'CustomerLifeCycle', 'model')
+    DATA_PATH = os.path.join(os.path.dirname(__file__), '..', 'CustomerLifeCycle', 'lifecycle.csv')
+    info = {
+        'model_type': lifecycle_metadata.get('model_type', 'Unknown'),
+        'features': lifecycle_features,
+        'classes': lifecycle_metadata.get('classes', []),
+        'model_loaded': lifecycle_model is not None,
+        'needs_scaling': lifecycle_metadata.get('needs_scaling', False),
+        'n_features': len(lifecycle_features),
+        'files_exist': {
+            'model': os.path.exists(os.path.join(MODEL_DIR, 'model.pkl')),
+            'scaler': os.path.exists(os.path.join(MODEL_DIR, 'lifecycle_scaler.pkl')),
+            'label_encoder': os.path.exists(os.path.join(MODEL_DIR, 'label_encoder.pkl')),
+            'features': os.path.exists(os.path.join(MODEL_DIR, 'lifecycle_features.pkl')),
+            'metadata': os.path.exists(os.path.join(MODEL_DIR, 'lifecycle_model_metadata.pkl')),
+            'data': os.path.exists(DATA_PATH)
+        }
+    }
+    return jsonify(info)
+
+@app.route('/api/reload_lifecycle_model')
+def reload_lifecycle_model():
+    """Reload lifecycle model files"""
+    success = load_lifecycle_model_files()
+    return jsonify({
+        'success': success,
+        'model_loaded': lifecycle_model is not None,
+        'message': 'Lifecycle model reloaded successfully' if success else 'Failed to reload lifecycle model'
     })
 
 if __name__ == '__main__':
@@ -284,14 +515,22 @@ if __name__ == '__main__':
         print("Created templates directory")
     
     print("Starting Flask app...")
-    print("Demographic Customer Segmentation API")
+    print("Customer Segmentation API (Demographic & Lifecycle)")
     print("Visit: http://localhost:5000")
-    print(f"Model loaded: {model_loaded}")
+    print(f"Demographic model loaded: {model_loaded}")
+    print(f"Lifecycle model loaded: {lifecycle_model_loaded}")
     
     if not model_loaded:
-        print("\nWARNING: Model not loaded!")
+        print("\nWARNING: Demographic model not loaded!")
         print("To fix this:")
         print("   1. Run your train_model.py script")
+        print("   2. Make sure it creates the required files")
+        print("   3. Restart this Flask app")
+    
+    if not lifecycle_model_loaded:
+        print("\nWARNING: Lifecycle model not loaded!")
+        print("To fix this:")
+        print("   1. Run your train_lifecycle_model.py script")
         print("   2. Make sure it creates the required files")
         print("   3. Restart this Flask app")
     

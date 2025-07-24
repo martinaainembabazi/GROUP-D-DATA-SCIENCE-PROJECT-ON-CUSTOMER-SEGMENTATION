@@ -1,0 +1,754 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Customer Lifecycle Analysis</title>
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+      rel="stylesheet"
+    />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        background: #f8fafc;
+        min-height: 100vh;
+        padding: 20px;
+      }
+
+      .container {
+        max-width: 900px;
+        margin: 0 auto;
+        background: white;
+        border-radius: 20px;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+        overflow: hidden;
+        animation: fadeInUp 0.8s ease-out;
+        border: 1px solid #e2e8f0;
+      }
+
+      @keyframes fadeInUp {
+        from {
+          opacity: 0;
+          transform: translateY(30px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      .header {
+        background: linear-gradient(135deg, #1e40af 0%, #0f766e 100%);
+        color: white;
+        padding: 40px 30px;
+        text-align: center;
+        position: relative;
+      }
+
+      .header::before {
+        content: "";
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 20px;
+        background: white;
+        border-radius: 50% 50% 0 0 / 100% 100% 0 0;
+      }
+
+      .header h1 {
+        font-size: 2.5rem;
+        margin-bottom: 10px;
+        font-weight: 700;
+        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+      }
+
+      .header p {
+        font-size: 1.1rem;
+        opacity: 0.9;
+        margin-bottom: 0;
+      }
+
+      .back-link {
+        position: absolute;
+        top: 20px;
+        left: 20px;
+        color: rgba(255, 255, 255, 0.9);
+        text-decoration: none;
+        font-size: 1rem;
+        transition: all 0.3s ease;
+      }
+
+      .back-link:hover {
+        color: white;
+        transform: translateX(-3px);
+      }
+
+      .form-container {
+        background: white;
+        padding: 40px 30px;
+      }
+
+      .form-group {
+        position: relative;
+        margin-bottom: 25px;
+        background: white;
+      }
+
+      .form-group label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: 600;
+        color: #1e293b;
+        font-size: 0.95rem;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .form-group i {
+        color: #1e40af;
+        width: 16px;
+      }
+
+      input {
+        width: 100%;
+        padding: 15px 20px;
+        border: 2px solid #e2e8f0;
+        border-radius: 12px;
+        font-size: 16px;
+        transition: all 0.3s ease;
+        background: white;
+        color: #1e293b;
+      }
+
+      input:focus {
+        outline: none;
+        border-color: #1e40af;
+        box-shadow: 0 0 0 3px rgba(30, 64, 175, 0.1);
+        transform: translateY(-2px);
+      }
+
+      input:hover {
+        border-color: #1e40af;
+      }
+
+      .help-text {
+        font-size: 0.85rem;
+        color: #64748b;
+        margin-top: 5px;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+      }
+
+      .help-text i {
+        color: #94a3b8;
+        font-size: 0.8rem;
+      }
+
+      .submit-btn {
+        background: linear-gradient(135deg, #1e40af 0%, #0f766e 100%);
+        color: white;
+        padding: 18px 40px;
+        border: none;
+        border-radius: 50px;
+        cursor: pointer;
+        font-size: 18px;
+        font-weight: 600;
+        width: 100%;
+        margin-top: 20px;
+        transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .submit-btn:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 10px 25px rgba(30, 64, 175, 0.3);
+        background: linear-gradient(135deg, #1d4ed8 0%, #047857 100%);
+      }
+
+      .submit-btn:active {
+        transform: translateY(-1px);
+      }
+
+      .submit-btn:disabled {
+        background: #94a3b8;
+        cursor: not-allowed;
+        transform: none;
+        box-shadow: none;
+      }
+
+      .submit-btn::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(
+          90deg,
+          transparent,
+          rgba(255, 255, 255, 0.2),
+          transparent
+        );
+        transition: left 0.5s;
+      }
+
+      .submit-btn:hover::before {
+        left: 100%;
+      }
+
+      .result {
+        margin-top: 30px;
+        padding: 30px;
+        background: #f8fafc;
+        border-radius: 15px;
+        border: 1px solid #e2e8f0;
+        animation: slideIn 0.5s ease-out;
+      }
+
+      @keyframes slideIn {
+        from {
+          opacity: 0;
+          transform: translateX(-20px);
+        }
+        to {
+          opacity: 1;
+          transform: translateX(0);
+        }
+      }
+
+      .result h3 {
+        color: #1e293b;
+        margin-bottom: 20px;
+        font-size: 1.5rem;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .result-table {
+        width: 100%;
+        border-collapse: collapse;
+        background: white;
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+      }
+
+      .result-table th,
+      .result-table td {
+        padding: 15px;
+        text-align: left;
+        border-bottom: 1px solid #e2e8f0;
+      }
+
+      .result-table th {
+        background: #1e40af;
+        color: white;
+        font-weight: 600;
+      }
+
+      .result-table tr:last-child td {
+        border-bottom: none;
+      }
+
+      .result-table tr:hover {
+        background: #f8fafc;
+        transform: translateX(5px);
+        transition: all 0.3s ease;
+      }
+
+      .error {
+        margin-top: 30px;
+        padding: 25px;
+        background: #fef2f2;
+        border-radius: 15px;
+        color: #991b1b;
+        border: 1px solid #fecaca;
+        animation: shake 0.5s ease-out;
+      }
+
+      @keyframes shake {
+        0%,
+        20%,
+        40%,
+        60%,
+        80%,
+        100% {
+          transform: translateX(0);
+        }
+        10%,
+        30%,
+        50%,
+        70%,
+        90% {
+          transform: translateX(-5px);
+        }
+      }
+
+      .loading {
+        display: none;
+        text-align: center;
+        margin: 20px 0;
+        background: white;
+      }
+
+      .spinner {
+        border: 4px solid #f3f4f6;
+        border-top: 4px solid #1e40af;
+        border-radius: 50%;
+        width: 40px;
+        height: 40px;
+        animation: spin 1s linear infinite;
+        margin: 0 auto;
+      }
+
+      @keyframes spin {
+        0% {
+          transform: rotate(0deg);
+        }
+        100% {
+          transform: rotate(360deg);
+        }
+      }
+
+      .charts-container {
+        margin-top: 30px;
+        padding: 30px;
+        background: #f8fafc;
+        border-radius: 15px;
+        border: 1px solid #e2e8f0;
+        animation: slideIn 0.5s ease-out;
+      }
+
+      .charts-container h3 {
+        color: #1e293b;
+        margin-bottom: 20px;
+        font-size: 1.5rem;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .chart-row {
+        display: flex;
+        justify-content: space-between;
+        gap: 20px;
+        flex-wrap: wrap;
+      }
+
+      .chart {
+        flex: 1;
+        min-width: 300px;
+        max-width: 400px;
+      }
+
+      .description-container {
+        margin-top: 30px;
+        padding: 30px;
+        background: #f8fafc;
+        border-radius: 15px;
+        border: 1px solid #e2e8f0;
+        animation: slideIn 0.5s ease-out;
+      }
+
+      .description-container h3 {
+        color: #1e293b;
+        margin-bottom: 20px;
+        font-size: 1.5rem;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .description-item {
+        margin-bottom: 15px;
+      }
+
+      .description-item h4 {
+        color: #1e40af;
+        font-size: 1.2rem;
+        margin-bottom: 5px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .description-item p {
+        color: #1e293b;
+        font-size: 1rem;
+        line-height: 1.5;
+      }
+
+      @media (max-width: 768px) {
+        .container {
+          margin: 10px;
+          border-radius: 15px;
+        }
+
+        .header {
+          padding: 30px 20px;
+        }
+
+        .header h1 {
+          font-size: 2rem;
+        }
+
+        .form-container {
+          padding: 30px 20px;
+        }
+
+        .chart-row {
+          flex-direction: column;
+          align-items: center;
+        }
+
+        .chart {
+          max-width: 100%;
+        }
+
+        .description-container {
+          padding: 20px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <a href="/" class="back-link"
+          ><i class="fas fa-arrow-left"></i> Back to Home</a
+        >
+        <h1><i class="fas fa-clock"></i> Customer Lifecycle Analysis</h1>
+        <p>Analyze customer lifecycle based on historical data</p>
+        <p>Model loaded: {{ model_loaded }}</p>
+      </div>
+
+      <div class="form-container">
+        {% if not model_loaded %}
+        <div class="error">
+          <h3><i class="fas fa-exclamation-triangle"></i> Error</h3>
+          <p>
+            Data or model not loaded. Please ensure lifecycle.csv and model
+            files are available.
+          </p>
+        </div>
+        {% else %}
+        <form
+          method="POST"
+          action="/fetch_lifecycle"
+          id="lifecycleForm"
+          enctype="application/x-www-form-urlencoded"
+        >
+          <div class="form-group">
+            <label for="Recency"
+              ><i class="fas fa-clock"></i> Recency (days since last
+              purchase)</label
+            >
+            <input
+              type="number"
+              id="Recency"
+              name="Recency"
+              required
+              placeholder="Enter days since last purchase"
+              min="0"
+            />
+            <div class="help-text">
+              <i class="fas fa-info-circle"></i> Number of days since the
+              customer's last purchase
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="Tenure_Days"
+              ><i class="fas fa-calendar"></i> Tenure Days (total days as
+              customer)</label
+            >
+            <input
+              type="number"
+              id="Tenure_Days"
+              name="Tenure_Days"
+              required
+              placeholder="Enter total days as customer"
+              min="0"
+            />
+            <div class="help-text">
+              <i class="fas fa-info-circle"></i> Total number of days the
+              customer has been active
+            </div>
+          </div>
+          <button type="submit" class="submit-btn">
+            <i class="fas fa-search"></i> Predict Lifecycle Stage
+          </button>
+          <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p>Predicting lifecycle stage...</p>
+          </div>
+        </form>
+        <div class="result" id="predictionResult" style="display: none">
+          <h3><i class="fas fa-table"></i> Prediction Result</h3>
+          <table class="result-table">
+            <thead>
+              <tr>
+                <th>Lifecycle Stage</th>
+              </tr>
+            </thead>
+            <tbody id="resultBody">
+              <tr>
+                <td id="lifecycleStage"></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="error" id="errorMessage" style="display: none">
+          <h3><i class="fas fa-exclamation-triangle"></i> Error</h3>
+          <p id="errorText"></p>
+        </div>
+        <div class="description-container">
+          <h3>
+            <i class="fas fa-info-circle"></i> Lifecycle Stage Descriptions
+          </h3>
+          <div class="description-item">
+            <h4><i class="fas fa-exclamation-circle"></i> At-Risk</h4>
+            <p>
+              Customers who have not engaged recently, indicating a risk of
+              churn. They may require targeted interventions to re-engage.
+            </p>
+          </div>
+          <div class="description-item">
+            <h4><i class="fas fa-heart"></i> Loyal</h4>
+            <p>
+              Customers with consistent engagement and long tenure,
+              demonstrating strong loyalty and high value to the business.
+            </p>
+          </div>
+        </div>
+        <div class="charts-container">
+          <h3>
+            <i class="fas fa-chart-bar"></i> Customer Lifecycle Distribution
+          </h3>
+          <div class="chart-row">
+            <div class="chart">
+              <canvas id="barChart"></canvas>
+            </div>
+            <div class="chart">
+              <canvas id="pieChart"></canvas>
+            </div>
+          </div>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+
+    {% if model_loaded %}
+    <script>
+      // Fetch lifecycle data
+      document
+        .getElementById("lifecycleForm")
+        .addEventListener("submit", async (e) => {
+          e.preventDefault();
+          const formData = new FormData(e.target);
+          const resultDiv = document.getElementById("predictionResult");
+          const resultBody = document.getElementById("resultBody");
+          const errorDiv = document.getElementById("errorMessage");
+          const errorText = document.getElementById("errorText");
+          const lifecycleStage = document.getElementById("lifecycleStage");
+          const loadingDiv = document.getElementById("loading");
+          resultDiv.style.display = "none";
+          errorDiv.style.display = "none";
+          loadingDiv.style.display = "block";
+
+          try {
+            const response = await fetch("/fetch_lifecycle", {
+              method: "POST",
+              body: formData,
+            });
+            const data = await response.json();
+            loadingDiv.style.display = "none";
+            if (data.success) {
+              lifecycleStage.textContent = data.lifecycle_stage;
+              resultDiv.style.display = "block";
+            } else {
+              errorText.textContent = `Error: ${data.error}`;
+              errorDiv.style.display = "block";
+            }
+          } catch (err) {
+            loadingDiv.style.display = "none";
+            errorText.textContent = `Client error: ${err.message}`;
+            errorDiv.style.display = "block";
+          }
+        });
+
+      // Add smooth transitions for input
+      document.querySelectorAll("input").forEach((element) => {
+        element.addEventListener("focus", function () {
+          this.parentNode.style.transform = "scale(1.02)";
+          this.style.transform = "scale(1)";
+        });
+
+        element.addEventListener("blur", function () {
+          this.parentNode.style.transform = "scale(1)";
+        });
+      });
+
+      // Fetch and render charts
+      async function loadCharts() {
+        console.log("Fetching lifecycle stats...");
+        try {
+          const response = await fetch("/api/lifecycle_stats", {
+            method: "GET",
+            headers: {
+              Accept: "application/json",
+            },
+          });
+          console.log("Response status:", response.status);
+          console.log(
+            "Response headers:",
+            response.headers.get("Content-Type")
+          );
+
+          if (!response.ok) {
+            throw new Error(`HTTP error! Status: ${response.status}`);
+          }
+
+          const contentType = response.headers.get("Content-Type");
+          if (!contentType || !contentType.includes("application/json")) {
+            const text = await response.text();
+            console.error("Non-JSON response:", text);
+            throw new Error("Response is not valid JSON");
+          }
+
+          const data = await response.json();
+          console.log("Chart data:", data);
+
+          if (data.success && data.stages && data.stages.length > 0) {
+            const labels = data.stages;
+            const counts = data.counts;
+
+            if (counts.every((c) => c === 0)) {
+              document.getElementById("errorText").textContent =
+                "No data available for charts.";
+              document.getElementById("errorMessage").style.display = "block";
+              return;
+            }
+
+            const colors = [
+              "#1e40af",
+              "#0f766e",
+              "#d97706",
+              "#dc2626",
+              "#6d28d9",
+            ];
+            const borderColors = [
+              "#1d4ed8",
+              "#047857",
+              "#b45309",
+              "#b91c1c",
+              "#5b21b6",
+            ];
+            const backgroundColors = labels.map(
+              (_, i) => colors[i % colors.length]
+            );
+            const borderColorsList = labels.map(
+              (_, i) => borderColors[i % borderColors.length]
+            );
+
+            // Bar Chart
+            new Chart(document.getElementById("barChart"), {
+              type: "bar",
+              data: {
+                labels: labels,
+                datasets: [
+                  {
+                    label: "Customer Count",
+                    data: counts,
+                    backgroundColor: backgroundColors,
+                    borderColor: borderColorsList,
+                    borderWidth: 1,
+                  },
+                ],
+              },
+              options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                  y: {
+                    beginAtZero: true,
+                    title: {
+                      display: true,
+                      text: "Number of Customers",
+                    },
+                  },
+                  x: {
+                    title: {
+                      display: true,
+                      text: "Lifecycle Stage",
+                    },
+                  },
+                },
+                plugins: {
+                  legend: { display: false },
+                  title: {
+                    display: true,
+                    text: "Customer Lifecycle Distribution (Bar)",
+                  },
+                },
+              },
+            });
+
+            // Pie Chart
+            new Chart(document.getElementById("pieChart"), {
+              type: "pie",
+              data: {
+                labels: labels,
+                datasets: [
+                  {
+                    data: counts,
+                    backgroundColor: backgroundColors,
+                    borderColor: borderColorsList,
+                    borderWidth: 1,
+                  },
+                ],
+              },
+              options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                  legend: { position: "right" },
+                  title: {
+                    display: true,
+                    text: "Customer Lifecycle Distribution (Pie)",
+                  },
+                },
+              },
+            });
+          } else {
+            document.getElementById("errorText").textContent =
+              data.error || "Failed to load chart data.";
+            document.getElementById("errorMessage").style.display = "block";
+          }
+        } catch (error) {
+          console.error("Error fetching chart data:", error);
+          document.getElementById(
+            "errorText"
+          ).textContent = `Error fetching chart data: ${error.message}`;
+          document.getElementById("errorMessage").style.display = "block";
+        }
+      }
+
+      // Load charts when the page loads
+      document.addEventListener("DOMContentLoaded", loadCharts);
+    </script>
+    {% endif %}
+  </body>
+</html>
