@@ -14,6 +14,10 @@ trained_features = []
 needs_scaling = False
 model_metadata = {}
 
+# Additional global variables for purchase clusters
+purchase_model = None
+purchase_model_loaded = False
+
 def load_model_files():
     global model, scaler, trained_features, needs_scaling, model_metadata
     
@@ -76,8 +80,31 @@ def load_model_files():
         trained_features = []
         return False
 
+# Load purchase cluster model
+def load_purchase_model():
+    global purchase_model, purchase_model_loaded
+
+    print("Loading purchase cluster model...")
+    model_path = 'purchase_clusters/model/random_forest_v3_model.joblib'
+
+    try:
+        if os.path.exists(model_path):
+            purchase_model = joblib.load(model_path)
+            purchase_model_loaded = True
+            print("Purchase cluster model loaded successfully")
+            return True
+        else:
+            print(f"Purchase model file not found at {model_path}")
+            purchase_model_loaded = False
+            return False
+    except Exception as e:
+        print(f"Error loading purchase model: {e}")
+        purchase_model_loaded = False
+        return False
+
 # Load model on startup
 model_loaded = load_model_files()
+purchase_model_loaded = load_purchase_model()
 
 # Define cluster labels
 cluster_labels = {
@@ -85,6 +112,13 @@ cluster_labels = {
     1: "Middle-aged Small Families",
     2: "Senior Singles/Couples", 
     3: "Middle-aged Large Families"
+}
+
+# Purchase cluster descriptions
+purchase_cluster_descriptions = {
+    0: "Budget-conscious customers with infrequent purchases primarily in discounts and promotions.",
+    1: "Regular shoppers with balanced category purchases and moderate spending patterns.",
+    2: "Premium buyers with high purchase frequency, especially in wines and gourmet products.",
 }
 
 def predict_customer_segment(year_birth, teenhome, kidhome, income, education, marital_status='Single'):
@@ -144,6 +178,48 @@ def predict_customer_segment(year_birth, teenhome, kidhome, income, education, m
         traceback.print_exc()
         return None, None
 
+# Purchase prediction function
+def predict_purchase_cluster(year_birth, kidhome, teenhome, marital_status, education, income):
+    """Predict purchase cluster for a customer using the purchase_clusters model"""
+    if not purchase_model_loaded:
+        print("Purchase model is not loaded")
+        return None, None
+
+    try:
+        # Create input data dictionary (raw features)
+        data_dict = {
+            'Year_Birth': [int(year_birth)],
+            'Kidhome': [int(kidhome)],
+            'Teenhome': [int(teenhome)],
+            'Marital_Status': [marital_status],
+            'Education': [int(education)],  # Already ordinal encoded from form
+            'Income': [float(income)]
+        }
+
+        print(f"Purchase prediction input: {data_dict}")
+
+        # Convert to DataFrame
+        df = pd.DataFrame(data_dict)
+
+        # Make prediction using the full pipeline
+        prediction = purchase_model.predict(df)[0]
+
+        # Get prediction probabilities for confidence
+        X_processed = purchase_model.named_steps['preprocessing'].transform(df)
+        probabilities = purchase_model.named_steps['classifier'].predict_proba(X_processed)[0]
+        confidence = probabilities.max() * 100
+
+        print(f"Purchase cluster prediction: {prediction}")
+        print(f"Confidence: {confidence:.2f}%")
+
+        return int(prediction), confidence
+
+    except Exception as e:
+        print(f"Purchase prediction error: {e}")
+        import traceback
+        traceback.print_exc()
+        return None, None
+
 @app.route('/')
 def landing():
     """Landing page with segmentation options"""
@@ -168,6 +244,11 @@ def behavior():
 def lifecycle():
     """Customer lifecycle segmentation page"""
     return render_template('lifecycle.html')
+
+@app.route('/purchase')
+def purchase_page():
+    """Purchase cluster prediction page"""
+    return render_template('purchase.html')
 
 @app.route('/predict', methods=['POST'])
 def predict():
@@ -247,6 +328,56 @@ def predict_form():
         import traceback
         traceback.print_exc()
         return render_template('demographics.html', error=str(e), model_loaded=model_loaded)
+
+@app.route('/predict_purchase', methods=['POST'])
+def predict_purchase():
+    """Predict purchase cluster based on form data"""
+    if request.method == 'POST':
+        try:
+            # Get form data
+            year_birth = request.form.get('Year_Birth')
+            kidhome = request.form.get('Kidhome')
+            teenhome = request.form.get('Teenhome')
+            marital_status = request.form.get('Marital_Status')
+            education = request.form.get('Education')
+            income = request.form.get('Income')
+
+            # Validate inputs
+            if not all([year_birth, kidhome, teenhome, marital_status, education, income]):
+                return jsonify({
+                    'success': False,
+                    'message': 'All fields are required'
+                })
+
+            # Make prediction
+            cluster, confidence = predict_purchase_cluster(
+                year_birth, kidhome, teenhome, marital_status, education, income
+            )
+
+            if cluster is not None:
+                # Get cluster description
+                description = purchase_cluster_descriptions.get(cluster, "Unknown purchase pattern")
+
+                return jsonify({
+                    'success': True,
+                    'cluster': int(cluster),
+                    'description': description,
+                    'confidence': round(float(confidence), 2)
+                })
+            else:
+                return jsonify({
+                    'success': False,
+                    'message': 'Prediction failed'
+                })
+
+        except Exception as e:
+            print(f"Error in purchase prediction route: {e}")
+            import traceback
+            traceback.print_exc()
+            return jsonify({
+                'success': False,
+                'message': f'Error: {str(e)}'
+            })
 
 @app.route('/api/info')
 def model_info():
