@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spending Cluster Prediction</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f8f9fa;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .container {
+            max-width: 900px;
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px 0;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+        .card {
+            border-radius: 15px;
+            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1);
+            margin-bottom: 30px;
+            border: none;
+            transition: all 0.3s ease;
+        }
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 20px rgba(0, 0, 0, 0.12);
+        }
+        .card-header {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            font-weight: bold;
+            border-radius: 15px 15px 0 0 !important;
+            padding: 15px 20px;
+        }
+        .form-label {
+            font-weight: 500;
+            margin-bottom: 0.3rem;
+        }
+        .form-control, .form-select {
+            border-radius: 10px;
+            padding: 10px 15px;
+            border: 1px solid #ced4da;
+        }
+        .form-control:focus, .form-select:focus {
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.15);
+            border-color: #667eea;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            border-radius: 10px;
+            padding: 10px 25px;
+            font-weight: 500;
+            letter-spacing: 0.5px;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);
+        }
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(102, 126, 234, 0.3);
+        }
+        .result-card {
+            background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
+            color: white;
+            border-radius: 15px;
+            box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+        }
+        .result-card.bronze {
+            background: linear-gradient(135deg, #CD7F32 0%, #8B4513 100%);
+        }
+        .result-card.silver {
+            background: linear-gradient(135deg, #C0C0C0 0%, #808080 100%);
+        }
+        .result-card.gold {
+            background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
+        }
+        .result-card:hover {
+            transform: scale(1.02);
+        }
+        .result-value {
+            font-size: 2.5rem;
+            font-weight: bold;
+        }
+        .confidence-meter {
+            height: 10px;
+            border-radius: 5px;
+            background-color: #e9ecef;
+            margin-top: 8px;
+        }
+        .confidence-level {
+            height: 100%;
+            border-radius: 5px;
+            background: linear-gradient(90deg, #11998e 0%, #38ef7d 100%);
+        }
+        .nav-pills .nav-link {
+            border-radius: 10px;
+            margin-right: 10px;
+            color: #495057;
+        }
+        .nav-pills .nav-link.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        .form-text {
+            margin-top: 5px;
+            color: #6c757d;
+            font-size: 0.85rem;
+        }
+        .age-display {
+            color: #667eea;
+            font-weight: 500;
+        }
+        .feature-input {
+            transition: all 0.2s ease;
+        }
+        .feature-input:focus-within {
+            transform: scale(1.02);
+        }
+    </style>
+</head>
+<body>
+    <div class="container py-5">
+        <!-- Header -->
+        <div class="header text-center mb-5">
+            <h1 class="display-4"><i class="fas fa-coins me-3"></i>Spending Cluster Prediction</h1>
+            <p class="lead">Predict which spending tier (Bronze, Silver, Gold) a customer belongs to based on their profile</p>
+        </div>
+
+        <!-- Navigation -->
+        <ul class="nav nav-pills mb-4 justify-content-center">
+            <li class="nav-item">
+                <a class="nav-link" href="/">Home</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="/demographics">Demographics</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="/purchase">Purchase</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link active" href="/spending">Spending</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="/customerlifecycle">Lifecycle</a>
+            </li>
+        </ul>
+
+        <!-- Model Status Alert -->
+        {% if not model_loaded %}
+        <div class="alert alert-warning alert-dismissible fade show" role="alert">
+            <i class="fas fa-exclamation-triangle me-2"></i>
+            <strong>Model Not Available:</strong> The spending behavior clustering model is not loaded. 
+            Please ensure the model files are present and restart the application.
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        {% endif %}
+
+        <!-- Error Alert -->
+        {% if error %}
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="fas fa-exclamation-circle me-2"></i>
+            <strong>Error:</strong> {{ error }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        {% endif %}
+
+        <!-- Form Card -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-user-edit me-2"></i>Enter Customer Information</h5>
+            </div>
+            <div class="card-body">
+                <form action="/predict_spending" method="POST" id="spendingForm">
+                    <div class="row">
+                        <!-- Demographics Section -->
+                        <div class="col-md-6">
+                            <h6 class="text-muted mb-3">Demographics</h6>
+
+                            <div class="mb-3 feature-input">
+                                <label for="year_birth" class="form-label">Year of Birth</label>
+                                <input type="number" class="form-control" id="year_birth" name="Year_Birth" 
+                                       min="1920" max="2005" required value="{{ input_data.Year_Birth if input_data }}">
+                                <div class="form-text"></div>
+                            </div>
+
+                            <div class="mb-3 feature-input">
+                                <label for="education" class="form-label">Education Level</label>
+                                <select class="form-select" id="education" name="Education" required>
+                                    <option value="" {% if not input_data or not input_data.Education %}selected{% endif %} disabled>Select education level...</option>
+                                    <option value="0" {% if input_data and input_data.Education == '0' %}selected{% endif %}>Basic</option>
+                                    <option value="1" {% if input_data and input_data.Education == '1' %}selected{% endif %}>2n Cycle</option>
+                                    <option value="2" {% if input_data and input_data.Education == '2' %}selected{% endif %}>Graduation</option>
+                                    <option value="3" {% if input_data and input_data.Education == '3' %}selected{% endif %}>Master</option>
+                                    <option value="4" {% if input_data and input_data.Education == '4' %}selected{% endif %}>PhD</option>
+                                </select>
+                            </div>
+
+                            <div class="mb-3 feature-input">
+                                <label for="marital_status" class="form-label">Marital Status</label>
+                                <select class="form-select" id="marital_status" name="Marital_Status" required>
+                                    <option value="" {% if not input_data or not input_data.Marital_Status %}selected{% endif %} disabled>Select marital status...</option>
+                                    <option value="Single" {% if input_data and input_data.Marital_Status == 'Single' %}selected{% endif %}>Single</option>
+                                    <option value="Together" {% if input_data and input_data.Marital_Status == 'Together' %}selected{% endif %}>Together</option>
+                                    <option value="Married" {% if input_data and input_data.Marital_Status == 'Married' %}selected{% endif %}>Married</option>
+                                    <option value="Divorced" {% if input_data and input_data.Marital_Status == 'Divorced' %}selected{% endif %}>Divorced</option>
+                                    <option value="Widow" {% if input_data and input_data.Marital_Status == 'Widow' %}selected{% endif %}>Widow</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Household Section -->
+                        <div class="col-md-6">
+                            <h6 class="text-muted mb-3">Household Information</h6>
+
+                            <div class="mb-3 feature-input">
+                                <label for="income" class="form-label">Income (USD)</label>
+                                <input type="number" class="form-control" id="income" name="Income" 
+                                       min="0" step="1000" required value="{{ input_data.Income if input_data }}">
+                                <div class="form-text"><i class="fas fa-info-circle"></i> Annual household income</div>
+                            </div>
+
+                            <div class="mb-3 feature-input">
+                                <label for="kidhome" class="form-label">Number of Children at Home</label>
+                                <input type="number" class="form-control" id="kidhome" name="Kidhome" 
+                                       min="0" max="5" required value="{{ input_data.Kidhome if input_data else 0 }}">
+                                <div class="form-text"><i class="fas fa-info-circle"></i> Children under 13 years old</div>
+                            </div>
+
+                            <div class="mb-3 feature-input">
+                                <label for="teenhome" class="form-label">Number of Teenagers at Home</label>
+                                <input type="number" class="form-control" id="teenhome" name="Teenhome" 
+                                       min="0" max="5" required value="{{ input_data.Teenhome if input_data else 0 }}">
+                                <div class="form-text"><i class="fas fa-info-circle"></i> Children 13-19 years old</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="d-grid gap-2 col-md-6 mx-auto mt-4">
+                        <button type="submit" class="btn btn-primary btn-lg">
+                            <i class="fas fa-search me-2"></i>Predict Spending Tier
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Results Card -->
+        {% if result %}
+        <div class="card result-card {{ result.cluster_label.lower() }}">
+            <div class="card-body text-center py-4">
+                <h4 class="mb-3"><i class="fas fa-trophy me-2"></i>Prediction Result</h4>
+                <div class="result-value mb-2">{{ result.cluster_label }} Tier</div>
+                <p class="mb-3">Customer spending behavior classification</p>
+
+                <div class="row align-items-center mt-4">
+                    <div class="col-md-4 text-md-end">
+                        <p class="mb-0">Prediction Confidence:</p>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="confidence-meter">
+                            <div class="confidence-level" style="width: {{ (result.confidence * 100)|round(1) }}%"></div>
+                        </div>
+                    </div>
+                    <div class="col-md-2 text-md-start">
+                        <span>{{ (result.confidence * 100)|round(1) }}%</span>
+                    </div>
+                </div>
+
+                <!-- Additional Details -->
+                <div class="mt-4">
+                    <h6>All Tier Probabilities:</h6>
+                    <div class="row">
+                        {% for cluster_name, probability in result.all_probabilities.items() %}
+                        <div class="col-md-4">
+                            <small>{{ cluster_name }}: {{ (probability * 100)|round(1) }}%</small>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% else %}
+        <!-- Default Results Card (Initially Hidden) -->
+        <div class="card result-card" id="resultCard" style="display: none;">
+            <div class="card-body text-center py-4">
+                <h4 class="mb-3">Prediction Result</h4>
+                <div class="result-value mb-2" id="clusterResult">Gold Tier</div>
+                <p class="mb-3" id="clusterDescription">Customer spending tier classification.</p>
+
+                <div class="row align-items-center mt-4">
+                    <div class="col-md-4 text-md-end">
+                        <p class="mb-0">Prediction Confidence:</p>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="confidence-meter">
+                            <div class="confidence-level" id="confidenceLevel" style="width: 85%"></div>
+                        </div>
+                    </div>
+                    <div class="col-md-2 text-md-start">
+                        <span id="confidenceValue">85%</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Form submission handling - submit to server for real prediction
+        document.getElementById('spendingForm').addEventListener('submit', function(e) {
+            // Let the form submit normally to the server
+            // The server will handle the prediction and return the result
+        });
+
+        // Add animation effects to input fields
+        document.querySelectorAll('.feature-input').forEach(item => {
+            item.addEventListener('mouseenter', function() {
+                this.style.transform = 'scale(1.02)';
+            });
+
+            item.addEventListener('mouseleave', function() {
+                this.style.transform = 'scale(1)';
+            });
+        });
+
+        // Auto-calculate age for display
+        document.getElementById('year_birth').addEventListener('input', function() {
+            const yearBirth = parseInt(this.value);
+            const currentYear = new Date().getFullYear();
+            const age = currentYear - yearBirth;
+
+            if (!isNaN(age) && age > 0) {
+                const helpText = this.nextElementSibling;
+                helpText.innerHTML = `<i class="fas fa-info-circle"></i> Age: ${age} years old`;
+                helpText.classList.add('age-display');
+            }
+        });
+
+        // If we have results, scroll to them
+        {% if result %}
+        document.addEventListener('DOMContentLoaded', function() {
+            const resultCard = document.querySelector('.result-card');
+            if (resultCard) {
+                resultCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+        });
+        {% endif %}
+    </script>
+</body>
+</html>

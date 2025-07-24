@@ -25,6 +25,18 @@ lifecycle_metadata = {}
 lifecycle_df = None
 lifecycle_model_loaded = False
 
+# Initialize global variables for purchase behavior segmentation
+purchase_model = None
+purchase_scaler = None
+purchase_features = ['Income', 'Age', 'Education', 'Marital_Together', 'Marital_Single', 'Marital_Divorced', 'Marital_Widow', 'Marital_Married', 'Total_Dependents']
+purchase_model_loaded = False
+
+# Initialize global variables for spending behavior segmentation
+spending_model = None
+spending_scaler = None
+spending_features = ['Income', 'Age', 'Education', 'Marital_Together', 'Marital_Single', 'Marital_Divorced', 'Marital_Widow', 'Marital_Married', 'Total_Dependents']
+spending_model_loaded = False
+
 def load_model_files():
     global model, scaler, trained_features, needs_scaling, model_metadata
     
@@ -174,9 +186,95 @@ def load_lifecycle_model_files():
         lifecycle_model_loaded = False
         return False
 
+def load_purchase_model_files():
+    global purchase_model, purchase_scaler, purchase_model_loaded
+    
+    print("Checking for purchase model files...")
+    
+    # Check if files exist
+    purchase_model_path = os.path.join('purchase_clusters', 'model', 'random_forest_v3_model.joblib')
+    purchase_scaler_path = os.path.join('purchase_clusters', 'model', 'scaler_v3.joblib')
+    
+    required_files = [purchase_model_path, purchase_scaler_path]
+    missing_files = []
+
+    for file in required_files:
+        if not os.path.exists(file):
+            missing_files.append(file)
+    
+    if missing_files:
+        print(f"Missing purchase model files: {missing_files}")
+        print("Please run the purchase model training script to create the required files first!")
+        purchase_model_loaded = False
+        return False
+    
+    try:
+        # Load model and scaler
+        purchase_model = joblib.load(purchase_model_path)
+        purchase_scaler = joblib.load(purchase_scaler_path)
+        print("Purchase model and scaler loaded successfully")
+        
+        print(f"Purchase model expects {len(purchase_features)} features:")
+        for i, feature in enumerate(purchase_features):
+            print(f"  {i+1}. {feature}")
+        
+        purchase_model_loaded = True
+        return True
+        
+    except Exception as e:
+        print(f"Error loading purchase model files: {e}")
+        purchase_model = None
+        purchase_scaler = None
+        purchase_model_loaded = False
+        return False
+
+def load_spending_model_files():
+    global spending_model, spending_scaler, spending_model_loaded
+    
+    print("Checking for spending model files...")
+    
+    # Check if files exist
+    spending_model_path = os.path.join('spending_clusters', 'model', 'spending_rf_v3_model.joblib')
+    spending_scaler_path = os.path.join('spending_clusters', 'model', 'spending_scaler_v3.joblib')
+    
+    required_files = [spending_model_path, spending_scaler_path]
+    missing_files = []
+
+    for file in required_files:
+        if not os.path.exists(file):
+            missing_files.append(file)
+    
+    if missing_files:
+        print(f"Missing spending model files: {missing_files}")
+        print("Please run the spending model training script to create the required files first!")
+        spending_model_loaded = False
+        return False
+    
+    try:
+        # Load model and scaler
+        spending_model = joblib.load(spending_model_path)
+        spending_scaler = joblib.load(spending_scaler_path)
+        print("Spending model and scaler loaded successfully")
+        
+        print(f"Spending model expects {len(spending_features)} features:")
+        for i, feature in enumerate(spending_features):
+            print(f"  {i+1}. {feature}")
+        
+        spending_model_loaded = True
+        return True
+        
+    except Exception as e:
+        print(f"Error loading spending model files: {e}")
+        spending_model = None
+        spending_scaler = None
+        spending_model_loaded = False
+        return False
+
 # Load models on startup
 model_loaded = load_model_files()
 lifecycle_model_loaded = load_lifecycle_model_files()
+purchase_model_loaded = load_purchase_model_files()
+spending_model_loaded = load_spending_model_files()
 
 # Define cluster labels for demographic segmentation
 cluster_labels = {
@@ -184,6 +282,20 @@ cluster_labels = {
     1: "Middle-aged Small Families",
     2: "Senior Singles/Couples", 
     3: "Middle-aged Large Families"
+}
+
+# Define cluster labels for purchase behavior segmentation
+purchase_cluster_labels = {
+    0: "Deal Seekers",
+    1: "Digital-First Shoppers", 
+    2: "Premium Multi-Channel Buyers"
+}
+
+# Define cluster labels for spending behavior segmentation
+spending_cluster_labels = {
+    0: "Bronze",
+    1: "Gold", 
+    2: "Silver"
 }
 
 def predict_customer_segment(year_birth, teenhome, kidhome, income, education, marital_status='Single'):
@@ -243,6 +355,116 @@ def predict_customer_segment(year_birth, teenhome, kidhome, income, education, m
         traceback.print_exc()
         return None, None
 
+def predict_purchase_cluster(income, age, education, marital_status='Single', total_dependents=0):
+    """Predict purchase cluster for a new customer"""
+    if purchase_model is None:
+        print("Purchase model is not loaded")
+        return None, None
+    
+    try:
+        # Create marital status dummy variables
+        marital_dummies = {
+            'Marital_Divorced': 1 if marital_status == 'Divorced' else 0,
+            'Marital_Married': 1 if marital_status == 'Married' else 0,
+            'Marital_Single': 1 if marital_status == 'Single' else 0,
+            'Marital_Together': 1 if marital_status == 'Together' else 0,
+            'Marital_Widow': 1 if marital_status == 'Widow' else 0
+        }
+        
+        # Create feature dictionary
+        features_dict = {
+            'Income': income,
+            'Age': age,
+            'Education': education,
+            'Total_Dependents': total_dependents,
+            **marital_dummies
+        }
+        
+        print(f"Input features: {features_dict}")
+        
+        # Create feature array in the same order as training
+        features = [features_dict.get(feature, 0) for feature in purchase_features]
+        features_array = np.array(features).reshape(1, -1)
+        
+        print(f"Feature array shape: {features_array.shape}")
+        print(f"Feature values: {features}")
+        
+        # Apply scaling
+        print("Applying scaling...")
+        features_array = purchase_scaler.transform(features_array)
+        
+        # Make prediction
+        print("Making prediction...")
+        prediction = purchase_model.predict(features_array)[0]
+        probabilities = purchase_model.predict_proba(features_array)[0]
+        
+        print(f"Prediction successful: Cluster {prediction}")
+        print(f"Probabilities: {probabilities}")
+        
+        return int(prediction), probabilities.tolist()
+        
+    except Exception as e:
+        print(f"Purchase prediction error: {e}")
+        print(f"Error type: {type(e).__name__}")
+        import traceback
+        traceback.print_exc()
+        return None, None
+
+def predict_spending_cluster(income, age, education, marital_status='Single', total_dependents=0):
+    """Predict spending cluster for a new customer"""
+    if spending_model is None:
+        print("Spending model is not loaded")
+        return None, None
+    
+    try:
+        # Create marital status dummy variables
+        marital_dummies = {
+            'Marital_Divorced': 1 if marital_status == 'Divorced' else 0,
+            'Marital_Married': 1 if marital_status == 'Married' else 0,
+            'Marital_Single': 1 if marital_status == 'Single' else 0,
+            'Marital_Together': 1 if marital_status == 'Together' else 0,
+            'Marital_Widow': 1 if marital_status == 'Widow' else 0
+        }
+        
+        # Create feature dictionary
+        features_dict = {
+            'Income': income,
+            'Age': age,
+            'Education': education,
+            'Total_Dependents': total_dependents,
+            **marital_dummies
+        }
+        
+        print(f"Input features: {features_dict}")
+        
+        # Create feature array in the same order as training
+        features = [features_dict.get(feature, 0) for feature in spending_features]
+        features_array = np.array(features).reshape(1, -1)
+        
+        print(f"Feature array shape: {features_array.shape}")
+        print(f"Feature values: {features}")
+        
+        # Apply scaling
+        print("Applying scaling...")
+        features_array = spending_scaler.transform(features_array)
+        
+        # Make prediction
+        print("Making prediction...")
+        prediction = spending_model.predict(features_array)[0]
+        probabilities = spending_model.predict_proba(features_array)[0]
+        
+        print(f"Prediction successful: Cluster {prediction}")
+        print(f"Probabilities: {probabilities}")
+        
+        return int(prediction), probabilities.tolist()
+        
+    except Exception as e:
+        print(f"Spending prediction error: {e}")
+        print(f"Error type: {type(e).__name__}")
+        import traceback
+        traceback.print_exc()
+        return None, None
+
 @app.route('/')
 def landing():
     """Landing page with segmentation options"""
@@ -256,12 +478,12 @@ def demographics():
 @app.route('/spending')
 def spending():
     """Spending behavior segmentation page"""
-    return render_template('spending.html')
+    return render_template('spending.html', model_loaded=spending_model_loaded)
 
-@app.route('/behavior')
-def behavior():
+@app.route('/purchase')
+def purchase():
     """Purchase behavior segmentation page"""
-    return render_template('behavior.html')
+    return render_template('purchase.html', model_loaded=purchase_model_loaded)
 
 @app.route('/customerlifecycle')
 def lifecycle():
@@ -305,6 +527,128 @@ def predict():
     except Exception as e:
         print(f"API prediction error: {e}")
         return jsonify({'error': str(e)}), 400
+
+@app.route('/predict_purchase', methods=['POST'])
+def predict_purchase():
+    """API endpoint for purchase cluster predictions"""
+    try:
+        data = request.get_json() if request.is_json else request.form
+        print(f"Received purchase prediction request: {dict(data)}")
+        
+        # Handle both form and JSON data
+        if request.is_json:
+            income = float(data['Income'])
+            age = int(data.get('Age', 2024 - int(data.get('Year_Birth', 1980))))
+            education = float(data['Education'])
+            marital_status = data.get('Marital_Status', 'Single')
+            total_dependents = int(data.get('Total_Dependents', int(data.get('Kidhome', 0)) + int(data.get('Teenhome', 0))))
+        else:
+            # Form data
+            income = float(data['Income'])
+            year_birth = int(data.get('Year_Birth', 1980))
+            age = 2024 - year_birth
+            education = float(data['Education'])
+            marital_status = data.get('Marital_Status', 'Single')
+            total_dependents = int(data.get('Kidhome', 0)) + int(data.get('Teenhome', 0))
+        
+        cluster, probabilities = predict_purchase_cluster(
+            income, age, education, marital_status, total_dependents
+        )
+        
+        if cluster is None:
+            if request.is_json:
+                return jsonify({'error': 'Model not loaded or prediction failed'}), 500
+            else:
+                error_msg = 'Model not loaded or prediction failed. Please check if model files exist.'
+                return render_template('purchase.html', error=error_msg, model_loaded=purchase_model_loaded)
+        
+        response = {
+            'cluster': cluster,
+            'cluster_label': purchase_cluster_labels.get(cluster, 'Unknown'),
+            'confidence': round(probabilities[cluster], 3),
+            'all_probabilities': {f'Cluster {i}': round(prob, 3) for i, prob in enumerate(probabilities)},
+            'input_data': {
+                'income': income, 'age': age, 'education': education, 
+                'marital_status': marital_status, 'total_dependents': total_dependents
+            }
+        }
+        
+        if request.is_json:
+            return jsonify(response)
+        else:
+            # Form submission - return HTML page with results
+            print(f"Purchase prediction result: {response}")
+            return render_template('purchase.html', result=response, input_data=data, model_loaded=purchase_model_loaded)
+    
+    except Exception as e:
+        print(f"Purchase prediction error: {e}")
+        import traceback
+        traceback.print_exc()
+        if request.is_json:
+            return jsonify({'error': str(e)}), 400
+        else:
+            return render_template('purchase.html', error=str(e), model_loaded=purchase_model_loaded)
+
+@app.route('/predict_spending', methods=['POST'])
+def predict_spending():
+    """API endpoint for spending cluster predictions"""
+    try:
+        data = request.get_json() if request.is_json else request.form
+        print(f"Received spending prediction request: {dict(data)}")
+        
+        # Handle both form and JSON data
+        if request.is_json:
+            income = float(data['Income'])
+            age = int(data.get('Age', 2024 - int(data.get('Year_Birth', 1980))))
+            education = float(data['Education'])
+            marital_status = data.get('Marital_Status', 'Single')
+            total_dependents = int(data.get('Total_Dependents', int(data.get('Kidhome', 0)) + int(data.get('Teenhome', 0))))
+        else:
+            # Form data
+            income = float(data['Income'])
+            year_birth = int(data.get('Year_Birth', 1980))
+            age = 2025 - year_birth  # Updated to current year
+            education = float(data['Education'])
+            marital_status = data.get('Marital_Status', 'Single')
+            total_dependents = int(data.get('Kidhome', 0)) + int(data.get('Teenhome', 0))
+        
+        cluster, probabilities = predict_spending_cluster(
+            income, age, education, marital_status, total_dependents
+        )
+        
+        if cluster is None:
+            if request.is_json:
+                return jsonify({'error': 'Model not loaded or prediction failed'}), 500
+            else:
+                error_msg = 'Model not loaded or prediction failed. Please check if model files exist.'
+                return render_template('spending.html', error=error_msg, model_loaded=spending_model_loaded)
+        
+        response = {
+            'cluster': cluster,
+            'cluster_label': spending_cluster_labels.get(cluster, 'Unknown'),
+            'confidence': round(probabilities[cluster], 3),
+            'all_probabilities': {f'Cluster {i}': round(prob, 3) for i, prob in enumerate(probabilities)},
+            'input_data': {
+                'income': income, 'age': age, 'education': education, 
+                'marital_status': marital_status, 'total_dependents': total_dependents
+            }
+        }
+        
+        if request.is_json:
+            return jsonify(response)
+        else:
+            # Form submission - return HTML page with results
+            print(f"Spending prediction result: {response}")
+            return render_template('spending.html', result=response, input_data=data, model_loaded=spending_model_loaded)
+    
+    except Exception as e:
+        print(f"Spending prediction error: {e}")
+        import traceback
+        traceback.print_exc()
+        if request.is_json:
+            return jsonify({'error': str(e)}), 400
+        else:
+            return render_template('spending.html', error=str(e), model_loaded=spending_model_loaded)
 
 @app.route('/predict_form', methods=['POST'])
 def predict_form():
@@ -508,6 +852,58 @@ def reload_lifecycle_model():
         'message': 'Lifecycle model reloaded successfully' if success else 'Failed to reload lifecycle model'
     })
 
+@app.route('/api/purchase_info')
+def purchase_model_info():
+    """API endpoint for purchase model information"""
+    info = {
+        'model_type': 'Random Forest Classifier',
+        'features': purchase_features,
+        'clusters': purchase_cluster_labels,
+        'model_loaded': purchase_model is not None,
+        'n_features': len(purchase_features),
+        'files_exist': {
+            'model': os.path.exists(os.path.join('purchase_clusters', 'model', 'random_forest_v3_model.joblib')),
+            'scaler': os.path.exists(os.path.join('purchase_clusters', 'model', 'scaler_v3.joblib'))
+        }
+    }
+    return jsonify(info)
+
+@app.route('/api/reload_purchase_model')
+def reload_purchase_model():
+    """Reload purchase model files"""
+    success = load_purchase_model_files()
+    return jsonify({
+        'success': success,
+        'model_loaded': purchase_model is not None,
+        'message': 'Purchase model reloaded successfully' if success else 'Failed to reload purchase model'
+    })
+
+@app.route('/api/spending_info')
+def spending_model_info():
+    """API endpoint for spending model information"""
+    info = {
+        'model_type': 'Random Forest Classifier',
+        'features': spending_features,
+        'clusters': spending_cluster_labels,
+        'model_loaded': spending_model is not None,
+        'n_features': len(spending_features),
+        'files_exist': {
+            'model': os.path.exists(os.path.join('spending_clusters', 'model', 'spending_rf_v3_model.joblib')),
+            'scaler': os.path.exists(os.path.join('spending_clusters', 'model', 'spending_scaler_v3.joblib'))
+        }
+    }
+    return jsonify(info)
+
+@app.route('/api/reload_spending_model')
+def reload_spending_model():
+    """Reload spending model files"""
+    success = load_spending_model_files()
+    return jsonify({
+        'success': success,
+        'model_loaded': spending_model is not None,
+        'message': 'Spending model reloaded successfully' if success else 'Failed to reload spending model'
+    })
+
 if __name__ == '__main__':
     # Create templates directory if it doesn't exist
     if not os.path.exists('templates'):
@@ -515,15 +911,31 @@ if __name__ == '__main__':
         print("Created templates directory")
     
     print("Starting Flask app...")
-    print("Customer Segmentation API (Demographic & Lifecycle)")
+    print("Customer Segmentation API (Demographic, Purchase, Spending & Lifecycle)")
     print("Visit: http://localhost:5000")
     print(f"Demographic model loaded: {model_loaded}")
+    print(f"Purchase model loaded: {purchase_model_loaded}")
+    print(f"Spending model loaded: {spending_model_loaded}")
     print(f"Lifecycle model loaded: {lifecycle_model_loaded}")
     
     if not model_loaded:
         print("\nWARNING: Demographic model not loaded!")
         print("To fix this:")
         print("   1. Run your train_model.py script")
+        print("   2. Make sure it creates the required files")
+        print("   3. Restart this Flask app")
+    
+    if not purchase_model_loaded:
+        print("\nWARNING: Purchase model not loaded!")
+        print("To fix this:")
+        print("   1. Run your purchase model training script")
+        print("   2. Make sure it creates the required files")
+        print("   3. Restart this Flask app")
+    
+    if not spending_model_loaded:
+        print("\nWARNING: Spending model not loaded!")
+        print("To fix this:")
+        print("   1. Run your spending model training script")
         print("   2. Make sure it creates the required files")
         print("   3. Restart this Flask app")
     

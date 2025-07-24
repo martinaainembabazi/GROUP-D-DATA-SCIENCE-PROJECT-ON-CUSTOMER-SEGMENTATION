@@ -138,7 +138,29 @@
             <li class="nav-item">
                 <a class="nav-link" href="/spending">Spending</a>
             </li>
+            <li class="nav-item">
+                <a class="nav-link" href="/customerlifecycle">Lifecycle</a>
+            </li>
         </ul>
+
+        <!-- Model Status Alert -->
+        {% if not model_loaded %}
+        <div class="alert alert-warning alert-dismissible fade show" role="alert">
+            <i class="fas fa-exclamation-triangle me-2"></i>
+            <strong>Model Not Available:</strong> The purchase behavior clustering model is not loaded. 
+            Please ensure the model files are present and restart the application.
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        {% endif %}
+
+        <!-- Error Alert -->
+        {% if error %}
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="fas fa-exclamation-circle me-2"></i>
+            <strong>Error:</strong> {{ error }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        {% endif %}
 
         <!-- Form Card -->
         <div class="card mb-4">
@@ -154,31 +176,32 @@
 
                             <div class="mb-3 feature-input">
                                 <label for="year_birth" class="form-label">Year of Birth</label>
-                                <input type="number" class="form-control" id="year_birth" name="Year_Birth" min="1920" max="2005" required>
+                                <input type="number" class="form-control" id="year_birth" name="Year_Birth" 
+                                       min="1920" max="2005" required value="{{ input_data.Year_Birth if input_data }}">
                                 <div class="form-text"></div>
                             </div>
 
                             <div class="mb-3 feature-input">
                                 <label for="education" class="form-label">Education Level</label>
                                 <select class="form-select" id="education" name="Education" required>
-                                    <option value="" selected disabled>Select education level...</option>
-                                    <option value="0">Basic</option>
-                                    <option value="1">2n Cycle</option>
-                                    <option value="2">Graduation</option>
-                                    <option value="3">Master</option>
-                                    <option value="4">PhD</option>
+                                    <option value="" {% if not input_data or not input_data.Education %}selected{% endif %} disabled>Select education level...</option>
+                                    <option value="0" {% if input_data and input_data.Education == '0' %}selected{% endif %}>Basic</option>
+                                    <option value="1" {% if input_data and input_data.Education == '1' %}selected{% endif %}>2n Cycle</option>
+                                    <option value="2" {% if input_data and input_data.Education == '2' %}selected{% endif %}>Graduation</option>
+                                    <option value="3" {% if input_data and input_data.Education == '3' %}selected{% endif %}>Master</option>
+                                    <option value="4" {% if input_data and input_data.Education == '4' %}selected{% endif %}>PhD</option>
                                 </select>
                             </div>
 
                             <div class="mb-3 feature-input">
                                 <label for="marital_status" class="form-label">Marital Status</label>
                                 <select class="form-select" id="marital_status" name="Marital_Status" required>
-                                    <option value="" selected disabled>Select marital status...</option>
-                                    <option value="Single">Single</option>
-                                    <option value="Together">Together</option>
-                                    <option value="Married">Married</option>
-                                    <option value="Divorced">Divorced</option>
-                                    <option value="Widow">Widow</option>
+                                    <option value="" {% if not input_data or not input_data.Marital_Status %}selected{% endif %} disabled>Select marital status...</option>
+                                    <option value="Single" {% if input_data and input_data.Marital_Status == 'Single' %}selected{% endif %}>Single</option>
+                                    <option value="Together" {% if input_data and input_data.Marital_Status == 'Together' %}selected{% endif %}>Together</option>
+                                    <option value="Married" {% if input_data and input_data.Marital_Status == 'Married' %}selected{% endif %}>Married</option>
+                                    <option value="Divorced" {% if input_data and input_data.Marital_Status == 'Divorced' %}selected{% endif %}>Divorced</option>
+                                    <option value="Widow" {% if input_data and input_data.Marital_Status == 'Widow' %}selected{% endif %}>Widow</option>
                                 </select>
                             </div>
                         </div>
@@ -189,19 +212,22 @@
 
                             <div class="mb-3 feature-input">
                                 <label for="income" class="form-label">Income (USD)</label>
-                                <input type="number" class="form-control" id="income" name="Income" min="0" step="1000" required>
+                                <input type="number" class="form-control" id="income" name="Income" 
+                                       min="0" step="1000" required value="{{ input_data.Income if input_data }}">
                                 <div class="form-text"><i class="fas fa-info-circle"></i> Annual household income</div>
                             </div>
 
                             <div class="mb-3 feature-input">
                                 <label for="kidhome" class="form-label">Number of Children at Home</label>
-                                <input type="number" class="form-control" id="kidhome" name="Kidhome" min="0" max="5" required>
+                                <input type="number" class="form-control" id="kidhome" name="Kidhome" 
+                                       min="0" max="5" required value="{{ input_data.Kidhome if input_data else 0 }}">
                                 <div class="form-text"><i class="fas fa-info-circle"></i> Children under 13 years old</div>
                             </div>
 
                             <div class="mb-3 feature-input">
                                 <label for="teenhome" class="form-label">Number of Teenagers at Home</label>
-                                <input type="number" class="form-control" id="teenhome" name="Teenhome" min="0" max="5" required>
+                                <input type="number" class="form-control" id="teenhome" name="Teenhome" 
+                                       min="0" max="5" required value="{{ input_data.Teenhome if input_data else 0 }}">
                                 <div class="form-text"><i class="fas fa-info-circle"></i> Children 13-19 years old</div>
                             </div>
                         </div>
@@ -216,12 +242,59 @@
             </div>
         </div>
 
-        <!-- Results Card (Initially Hidden) -->
+        <!-- Results Card -->
+        {% if result %}
+        <div class="card result-card">
+            <div class="card-body text-center py-4">
+                <h4 class="mb-3"><i class="fas fa-check-circle me-2"></i>Prediction Result</h4>
+                <div class="result-value mb-2">{{ result.cluster_label }}</div>
+                <p class="mb-3">Cluster {{ result.cluster }}: {{ result.cluster_label }}</p>
+
+                <!-- Cluster Description -->
+                <div class="mt-3 mb-4">
+                    {% if result.cluster == 0 %}
+                    <p class="text-white-75"><strong>Deal Seekers:</strong> Budget-conscious families who shop carefully, prefer in-store shopping, and research deals online before purchasing.</p>
+                    {% elif result.cluster == 1 %}
+                    <p class="text-white-75"><strong>Digital-First Shoppers:</strong> Tech-savvy customers with teenagers who prefer the convenience of online shopping and make frequent web purchases.</p>
+                    {% elif result.cluster == 2 %}
+                    <p class="text-white-75"><strong>Premium Multi-Channel Buyers:</strong> High-income customers who spend the most money and shop across all channels - stores, catalogs, and online.</p>
+                    {% endif %}
+                </div>
+
+                <div class="row align-items-center mt-4">
+                    <div class="col-md-4 text-md-end">
+                        <p class="mb-0">Prediction Confidence:</p>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="confidence-meter">
+                            <div class="confidence-level" style="width: {{ (result.confidence * 100)|round(1) }}%"></div>
+                        </div>
+                    </div>
+                    <div class="col-md-2 text-md-start">
+                        <span>{{ (result.confidence * 100)|round(1) }}%</span>
+                    </div>
+                </div>
+
+                <!-- Additional Details -->
+                <div class="mt-4">
+                    <h6>All Cluster Probabilities:</h6>
+                    <div class="row">
+                        {% for cluster_name, probability in result.all_probabilities.items() %}
+                        <div class="col-md-4">
+                            <small>{{ cluster_name }}: {{ (probability * 100)|round(1) }}%</small>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% else %}
+        <!-- Default Results Card (Initially Hidden) -->
         <div class="card result-card" id="resultCard" style="display: none;">
             <div class="card-body text-center py-4">
                 <h4 class="mb-3">Prediction Result</h4>
                 <div class="result-value mb-2" id="clusterResult">Cluster 0</div>
-                <p class="mb-3" id="clusterDescription">This customer belongs to a high-value purchase cluster.</p>
+                <p class="mb-3" id="clusterDescription">This customer belongs to a specific purchase cluster.</p>
 
                 <div class="row align-items-center mt-4">
                     <div class="col-md-4 text-md-end">
@@ -238,36 +311,15 @@
                 </div>
             </div>
         </div>
+        {% endif %}
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        // Form submission handling
+        // Form submission handling - submit to server for real prediction
         document.getElementById('purchaseForm').addEventListener('submit', function(e) {
-            e.preventDefault();
-
-            // In a real app, you would send the form data to the server
-            // and get back a prediction result
-            // For now, we'll just show a sample result
-            document.getElementById('resultCard').style.display = 'block';
-            document.getElementById('resultCard').scrollIntoView({ behavior: 'smooth' });
-
-            // Sample prediction result (replace with actual server response in real implementation)
-            const sampleCluster = Math.floor(Math.random() * 4);
-            const sampleConfidence = Math.round(70 + Math.random() * 25);
-
-            document.getElementById('clusterResult').textContent = `Cluster ${sampleCluster}`;
-            document.getElementById('confidenceValue').textContent = `${sampleConfidence}%`;
-            document.getElementById('confidenceLevel').style.width = `${sampleConfidence}%`;
-
-            // Set description based on cluster
-            const descriptions = [
-                "Budget-conscious customers with moderate purchasing patterns.",
-                "Regular shoppers with targeted category preferences.",
-                "Premium buyers with high purchase frequency.",
-                "Occasional big-ticket purchasers."
-            ];
-            document.getElementById('clusterDescription').textContent = descriptions[sampleCluster];
+            // Let the form submit normally to the server
+            // The server will handle the prediction and return the result
         });
 
         // Add animation effects to input fields
@@ -293,6 +345,16 @@
                 helpText.classList.add('age-display');
             }
         });
+
+        // If we have results, scroll to them
+        {% if result %}
+        document.addEventListener('DOMContentLoaded', function() {
+            const resultCard = document.querySelector('.result-card');
+            if (resultCard) {
+                resultCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+        });
+        {% endif %}
     </script>
 </body>
 </html>
